@@ -1,0 +1,10 @@
+[{
+	"repoName":"Git Mirror Synchronizer",
+	"repoLocalPath":"/opt/git/git-mirror/tools/git-mirror-synchronizer",
+	"trackRemoteRepoName":"origin",
+	"trackRemoteRepoUrl":"https://github.com/LockonS/git-mirror-synchronizer.git",
+	"mirror":[{
+		"repoName":"gitlab",
+		"repoUrl":"git@gitlab.com:LockonS/git-mirror-synchronizer.git"
+	}]
+}]
