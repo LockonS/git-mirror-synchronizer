@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-SCRIPT_DIR=`dirname $0`
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 OFFSET=" --"
 DEBUG=
 LOG_FILE=/var/log/mirror-sync.log
