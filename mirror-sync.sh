@@ -12,11 +12,20 @@ repo-sync(){
 	local TRACK_REMOTE_REPO_NAME=${3}
 	local MIRROR_REMOTE_REPO_NAME=${4}
 	local DRY_RUN=${5}
-	echo "Sync project ==> \033[0;32m$REPO_NAME\033[0m to \033[0;34m$MIRROR_REMOTE_REPO_NAME\033[0m" 
+
+	# support sync with no mirror
+	PROMPT_MSG="Sync project ==> \033[0;32m$REPO_NAME\033[0m"
+	SYNC_CMD="cd $REPO_LOCAL_PATH && git pull $TRACK_REMOTE_REPO_NAME"
+	if [[ -n $MIRROR_REMOTE_REPO_NAME ]]; then
+		PROMPT_MSG+=" to \033[0;34m$MIRROR_REMOTE_REPO_NAME\033[0m"
+		SYNC_CMD+=" && git push $MIRROR_REMOTE_REPO_NAME"
+	fi
+
+	echo $PROMPT_MSG
 	if [[ ! -n $DRY_RUN ]]; then
-		cd $REPO_LOCAL_PATH && git pull $TRACK_REMOTE_REPO_NAME && git push $MIRROR_REMOTE_REPO_NAME 
+		sh -c $SYNC_CMD
 	else
-		echo "cd $REPO_LOCAL_PATH && git pull $TRACK_REMOTE_REPO_NAME && git push $MIRROR_REMOTE_REPO_NAME"
+		echo $SYNC_CMD
 	fi
 	echo ""
 }
@@ -75,19 +84,24 @@ repo-parse(){
 	if [[ $EXECUTE_MODE == "init" ]]; then
 		repo-init $REPO_NAME $REPO_LOCAL_PATH $TRACK_REMOTE_REPO_NAME $TRACK_REMOTE_REPO_URL 
 	fi
-	for (( MIRROR_INDEX = 0; MIRROR_INDEX < $MIRROR_LENGTH; MIRROR_INDEX++ )); do
-		local MIRROR_REMOTE_REPO_NAME=$(echo $REPO_DATA | jq ".mirror[$MIRROR_INDEX].repoName" | tr -d '"')
-		local MIRROR_REMOTE_REPO_URL=$(echo $REPO_DATA | jq ".mirror[$MIRROR_INDEX].repoUrl" | tr -d '"')
-		if [[ ! -n $MIRROR_REMOTE_REPO_NAME ]] || [[ ! -n $MIRROR_REMOTE_REPO_URL ]]; then
-			[[ $DEBUG ]] && echo "$OFFSET \033[0;33mMirror repository configuration is not complete, abort task\033[0m" 
-			return 0
-		fi
-		if [[ $EXECUTE_MODE == "init" ]]; then
-			repo-set-remote-repo $REPO_NAME $REPO_LOCAL_PATH $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL 
-		else
-			repo-sync $REPO_NAME $REPO_LOCAL_PATH $TRACK_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_NAME
-		fi
-	done
+	# if no mirror was set
+	if [[ $MIRROR_LENGTH -eq 0 ]]; then
+		repo-sync $REPO_NAME $REPO_LOCAL_PATH $TRACK_REMOTE_REPO_NAME
+	else
+		for (( MIRROR_INDEX = 0; MIRROR_INDEX < $MIRROR_LENGTH; MIRROR_INDEX++ )); do
+			local MIRROR_REMOTE_REPO_NAME=$(echo $REPO_DATA | jq ".mirror[$MIRROR_INDEX].repoName" | tr -d '"')
+			local MIRROR_REMOTE_REPO_URL=$(echo $REPO_DATA | jq ".mirror[$MIRROR_INDEX].repoUrl" | tr -d '"')
+			if [[ ! -n $MIRROR_REMOTE_REPO_NAME ]] || [[ ! -n $MIRROR_REMOTE_REPO_URL ]]; then
+				[[ $DEBUG ]] && echo "$OFFSET \033[0;33mMirror repository configuration is not complete, abort task\033[0m" 
+				return 0
+			fi
+			if [[ $EXECUTE_MODE == "init" ]]; then
+				repo-set-remote-repo $REPO_NAME $REPO_LOCAL_PATH $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL 
+			else
+				repo-sync $REPO_NAME $REPO_LOCAL_PATH $TRACK_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_NAME
+			fi
+		done
+	fi
 }
 
 help-page(){
@@ -98,6 +112,10 @@ help-page(){
 }
 
 running-check(){
+	# drop log files to desktop for MacOS
+	if [[ $OSTYPE == 'darwin'* ]]; then
+		LOG_FILE=$HOME/Desktop/mirror-sync.log
+	fi
 	if [[ ! -f $LOG_FILE ]]; then
 		touch $LOG_FILE
 	fi
