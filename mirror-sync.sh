@@ -112,14 +112,10 @@ help-page(){
 }
 
 running-check(){
-	# drop log files to desktop for MacOS
+	# change log files to home directory for macos
 	if [[ $OSTYPE == 'darwin'* ]]; then
-		LOG_FILE=$HOME/Desktop/mirror-sync.log
+		LOG_FILE=$HOME/.mirror-sync.log
 	fi
-	if [[ ! -f $LOG_FILE ]]; then
-		touch $LOG_FILE
-	fi
-	echo "\n\n--------------- $EXECUTE_TIME ---------------\n" 
 }
 
 load-config(){
@@ -152,6 +148,9 @@ load-config(){
 		(init | sync) echo "" ;;
 		(*) echo "Execute mode \033[0;33m$EXECUTE_MODE\033[0m not exist" && return 1 ;;
 	esac
+	# print execution start time
+	echo "\n\n--------------- $EXECUTE_TIME ---------------\n"
+	echo "Export log file ==> $LOG_FILE \n"
 	# get config file content
 	local CONFIG=$(cat $CONFIG_FILE)
 	# traverse repo list
@@ -159,10 +158,10 @@ load-config(){
 	for (( REPO_INDEX = 0; REPO_INDEX < $REPO_LENGTH; REPO_INDEX++ )); do
 		local REPO_DATA=$(echo $CONFIG | jq ".[$REPO_INDEX]")
 		local PROGRESS_INDEX=`expr $REPO_INDEX + 1`
-		echo "--------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------\n" 
+		echo "------------ Progress $PROGRESS_INDEX/$REPO_LENGTH ------------\n" 
 		repo-parse $REPO_DATA $EXECUTE_MODE
 	done
 }
 
 running-check
-load-config $@
+load-config $@ | tee -a $LOG_FILE
