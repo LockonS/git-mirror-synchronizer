@@ -2,8 +2,8 @@
 
 SCRIPT_DIR=$(dirname "$0")
 INDENT=" --"
-DEBUG=
-LOG_FILE=/var/log/mirror-sync.log
+DEBUG=false
+LOG_FILE='/var/log/mirror-sync.log'
 EXECUTE_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 
 # color
@@ -21,11 +21,8 @@ repo-sync() {
   MIRROR_REMOTE_REPO_NAME=${4}
   DRY_RUN=${5}
   echo -e "Sync project ==> ${GREEN}$REPO_NAME${NC} to ${BLUE}$MIRROR_REMOTE_REPO_NAME${NC}"
-  if [[ -z $DRY_RUN ]]; then
-    cd "$REPO_LOCAL_PATH" && git pull "$TRACK_REMOTE_REPO_NAME" && git push "$MIRROR_REMOTE_REPO_NAME"
-  else
-    echo "cd $REPO_LOCAL_PATH && git pull $TRACK_REMOTE_REPO_NAME && git push $MIRROR_REMOTE_REPO_NAME"
-  fi
+  [[ $DRY_RUN == true ]] && echo "git -C $REPO_LOCAL_PATH pull $TRACK_REMOTE_REPO_NAME && git -C $REPO_LOCAL_PATH push $MIRROR_REMOTE_REPO_NAME" && return 0
+  git -C "$REPO_LOCAL_PATH" pull "$TRACK_REMOTE_REPO_NAME" && git -C "$REPO_LOCAL_PATH" push "$MIRROR_REMOTE_REPO_NAME"
   echo ""
 }
 
@@ -36,17 +33,14 @@ repo-init() {
   TRACK_REMOTE_REPO_NAME=${3}
   TRACK_REMOTE_REPO_URL=${4}
   DRY_RUN=${5}
-  echo "Initialize project ==> ${GREEN}$REPO_NAME${NC}	${BLUE}$REPO_LOCAL_PATH${NC}"
+  echo -e "Initialize project ==> ${GREEN}$REPO_NAME${NC}	${BLUE}$REPO_LOCAL_PATH${NC}"
   mkdir -p "$(dirname "$REPO_LOCAL_PATH")"
   if [[ -d $REPO_LOCAL_PATH/.git ]]; then
-    [[ $DEBUG ]] && echo "${INDENT} ${YELLOW}Project repository is initialized, abort clone process${NC}"
+    [[ $DEBUG == true ]] && echo "${INDENT} ${YELLOW}Project repository is initialized, abort clone process${NC}"
     return 0
   fi
-  if [[ -z $DRY_RUN ]]; then
-    git clone "$TRACK_REMOTE_REPO_URL" "$REPO_LOCAL_PATH"
-  else
-    echo "git clone $TRACK_REMOTE_REPO_URL $REPO_LOCAL_PATH"
-  fi
+  [[ $DRY_RUN == true ]] && echo "git clone $TRACK_REMOTE_REPO_URL $REPO_LOCAL_PATH" && return 0
+  git clone "$TRACK_REMOTE_REPO_URL" "$REPO_LOCAL_PATH"
   echo ""
 }
 
@@ -59,13 +53,10 @@ repo-set-remote-repo() {
   DRY_RUN=${5}
   cd "$REPO_LOCAL_PATH"
   # check if remote repo has been configured already
-  echo "${INDENT} Add remote repository ==> ${GREEN}$MIRROR_REMOTE_REPO_NAME${NC}	${BLUE}$MIRROR_REMOTE_REPO_URL${NC}"
-  if [[ -z $(git remote | grep "^$MIRROR_REMOTE_REPO_NAME$") ]]; then
-    if [[ -z $DRY_RUN ]]; then
-      git remote add "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
-    else
-      echo "git remote add $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL"
-    fi
+  echo -e "${INDENT} Add remote repository ==> ${GREEN}$MIRROR_REMOTE_REPO_NAME${NC}	${BLUE}$MIRROR_REMOTE_REPO_URL${NC}"
+  if git remote | grep -q "^$MIRROR_REMOTE_REPO_NAME$"; then
+    [[ $DRY_RUN == true ]] && echo "git remote add $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL" && return 0
+    git remote add "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
   fi
 }
 
@@ -79,19 +70,17 @@ repo-parse() {
   TRACK_REMOTE_REPO_URL=$(echo "$REPO_DATA" | jq '.trackRemoteRepoUrl' | tr -d '"')
   MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
   if [[ -z $REPO_LOCAL_PATH ]] || [[ -z $TRACK_REMOTE_REPO_NAME ]] || [[ -z $TRACK_REMOTE_REPO_URL ]]; then
-    [[ $DEBUG ]] && echo "${INDENT} ${YELLOW}Tracking repository configuration is not complete, abort task${NC}"
+    [[ $DEBUG == true ]] && echo "${INDENT} ${YELLOW}Tracking repository configuration is not complete, abort task${NC}"
     return 0
   fi
   # traverse miror list
-  if [[ $EXECUTE_MODE == "init" ]]; then
-    repo-init "$REPO_NAME" "$REPO_LOCAL_PATH" "$TRACK_REMOTE_REPO_NAME" "$TRACK_REMOTE_REPO_URL"
-  fi
+  [[ $EXECUTE_MODE == "init" ]] && repo-init "$REPO_NAME" "$REPO_LOCAL_PATH" "$TRACK_REMOTE_REPO_NAME" "$TRACK_REMOTE_REPO_URL"
   local MIRROR_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_URL
   for ((MIRROR_INDEX = 0; MIRROR_INDEX < MIRROR_LENGTH; MIRROR_INDEX++)); do
     MIRROR_REMOTE_REPO_NAME=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].repoName" | tr -d '"')
     MIRROR_REMOTE_REPO_URL=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].repoUrl" | tr -d '"')
     if [[ -z $MIRROR_REMOTE_REPO_NAME ]] || [[ -z $MIRROR_REMOTE_REPO_URL ]]; then
-      [[ $DEBUG ]] && echo "${INDENT} ${YELLOW}Mirror repository configuration is not complete, abort task${NC}"
+      [[ $DEBUG == true ]] && echo "${INDENT} ${YELLOW}Mirror repository configuration is not complete, abort task${NC}"
       return 0
     fi
     if [[ $EXECUTE_MODE == "init" ]]; then
@@ -139,17 +128,14 @@ load-config() {
     esac
   done
   shift $((OPTIND - 1))
-  # validate input config file
-  if [[ -z $CONFIG_FILE ]]; then
-    # apply default config file
-    CONFIG_FILE=$SCRIPT_DIR/data/repo.json
-  fi
+  # apply default config file if config file is empty
+  [[ -z $CONFIG_FILE ]] && CONFIG_FILE=$SCRIPT_DIR/data/repo.json
+  # check if config file exist
   [[ ! -f $CONFIG_FILE ]] && echo "Config file ${YELLOW}$CONFIG_FILE${NC} does not exist" && return 1
   # validate execute mode
-  case $EXECUTE_MODE in
-    init | sync) echo "" ;;
-    *) echo -e "Execute mode ${YELLOW}$EXECUTE_MODE${NC} not exist" && return 1 ;;
-  esac
+  if [[ $EXECUTE_MODE != 'init' ]] && [[ $EXECUTE_MODE != 'sync' ]]; then
+    echo -e "Execute mode ${YELLOW}$EXECUTE_MODE${NC} not exist" && return 1
+  fi
 
   local CONFIG REPO_LENGTH REPO_DATA PROGRESS_INDEX
   # get config file content
