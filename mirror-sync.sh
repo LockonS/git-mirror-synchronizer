@@ -95,10 +95,10 @@ repo-parse() {
 }
 
 help-page() {
-  echo "usage: ./mirror-sync.sh [-f config-file] [-m execute-mode] [-h]"
-  echo "       -f file   Specify input config file, default to path-to-script/data/repo.json"
-  echo "       -m mode   Specify execute mode [init | sync], default to sync mode"
-  echo "       -h  	 Display help page"
+  echo "usage: mirror-sync.sh [-f|--config-file file] [-m|--mode mode] [-h|--help]"
+  echo "       -f,--config-file  file   Specify input config file, default to path-to-script/data/repo.json"
+  echo "       -m,--mode   mode         Specify execute mode [init | sync], default to sync mode"
+  echo "       -h                       Display help page"
 }
 
 running-check() {
@@ -113,6 +113,7 @@ load-config() {
 
   while [ $# -gt 0 ]; do
     case ${1} in
+      -h | --help) help-page && return 0 ;;
       -f | --config-file) CONFIG_FILE=${2} && shift 2 ;;
       -m | --mode) EXECUTE_MODE=${2} && shift 2 ;;
       -d | --debug) DEBUG=true && shift 1 ;;
@@ -136,7 +137,7 @@ load-config() {
   for ((REPO_INDEX = 0; REPO_INDEX < REPO_LENGTH; REPO_INDEX++)); do
     REPO_DATA=$(echo "$CONFIG_CONTENT" | jq ".[$REPO_INDEX]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
-    echo -e "--------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------\n"
+    echo -e "\n--------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------\n"
     repo-parse "$REPO_DATA" "$EXECUTE_MODE"
   done
 }
