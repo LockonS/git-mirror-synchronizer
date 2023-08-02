@@ -21,7 +21,10 @@ repo-sync() {
   MIRROR_REMOTE_REPO_NAME=${4}
   DRY_RUN=${5}
   echo -e "Sync project ==> ${GREEN}$REPO_NAME${NC} to ${BLUE}$MIRROR_REMOTE_REPO_NAME${NC}"
-  [[ $DRY_RUN == true ]] && echo "git -C $REPO_LOCAL_PATH pull $TRACK_REMOTE_REPO_NAME && git -C $REPO_LOCAL_PATH push $MIRROR_REMOTE_REPO_NAME" && return 0
+  if [[ $DRY_RUN == true ]]; then
+    echo "git -C $REPO_LOCAL_PATH pull $TRACK_REMOTE_REPO_NAME && git -C $REPO_LOCAL_PATH push $MIRROR_REMOTE_REPO_NAME"
+    return 0
+  fi
   git -C "$REPO_LOCAL_PATH" pull "$TRACK_REMOTE_REPO_NAME" && git -C "$REPO_LOCAL_PATH" push "$MIRROR_REMOTE_REPO_NAME"
   echo ""
 }
