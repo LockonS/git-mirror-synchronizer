@@ -57,11 +57,11 @@ repo-set-remote-repo() {
   cd "$REPO_LOCAL_PATH"
   # check if remote repo has been configured already
   if ! git remote | grep -q "^$MIRROR_REMOTE_REPO_NAME$"; then
-    echo -e "${INDENT} Add remote repository ==> ${GREEN}$MIRROR_REMOTE_REPO_NAME${NC}	${BLUE}$MIRROR_REMOTE_REPO_URL${NC}"
+    echo -e "${INDENT} Setup remote repo ==> ${GREEN}$MIRROR_REMOTE_REPO_NAME${NC}	${BLUE}$MIRROR_REMOTE_REPO_URL${NC}"
     [[ $DRY_RUN == true ]] && echo "git remote add $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL" && return 0
     git remote add "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
   else
-    echo -e "${INDENT} Remote repository configured ==> ${GREEN}$MIRROR_REMOTE_REPO_NAME${NC}	${BLUE}$MIRROR_REMOTE_REPO_URL${NC}"
+    echo -e "${INDENT} Remote repo ==> ${GREEN}$MIRROR_REMOTE_REPO_NAME${NC}	${BLUE}$MIRROR_REMOTE_REPO_URL${NC}"
   fi
 }
 
