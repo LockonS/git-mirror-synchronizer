@@ -2,15 +2,17 @@
 
 SCRIPT_DIR=$(dirname "$0")
 INDENT=" --"
-DEBUG=false
 LOG_FILE='/var/log/mirror-sync.log'
 EXECUTE_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+
+# configuration
+DEBUG=false
+SYNC_MIRROR=true
 
 # color
 BLUE='\033[0;34m'
 YELLOW='\033[0;33m'
 GREEN='\033[0;32m'
-RED='\033[1;31m'
 NC='\033[0m'
 
 repo-sync() {
@@ -22,10 +24,12 @@ repo-sync() {
   DRY_RUN=${5}
   echo -e "Sync project ==> ${GREEN}$REPO_NAME${NC} to ${BLUE}$MIRROR_REMOTE_REPO_NAME${NC}"
   if [[ $DRY_RUN == true ]]; then
-    echo "git -C $REPO_LOCAL_PATH pull $TRACK_REMOTE_REPO_NAME && git -C $REPO_LOCAL_PATH push $MIRROR_REMOTE_REPO_NAME"
+    echo "git -C $REPO_LOCAL_PATH pull $TRACK_REMOTE_REPO_NAME"
+    [[ $SYNC_MIRROR == true ]] && echo "git -C $REPO_LOCAL_PATH push $MIRROR_REMOTE_REPO_NAME"
     return 0
   fi
-  git -C "$REPO_LOCAL_PATH" pull "$TRACK_REMOTE_REPO_NAME" && git -C "$REPO_LOCAL_PATH" push "$MIRROR_REMOTE_REPO_NAME"
+  git -C "$REPO_LOCAL_PATH" pull "$TRACK_REMOTE_REPO_NAME"
+  [[ $SYNC_MIRROR == true ]] && git -C "$REPO_LOCAL_PATH" push "$MIRROR_REMOTE_REPO_NAME"
   echo ""
 }
 
@@ -97,9 +101,10 @@ repo-parse() {
 }
 
 help-page() {
-  echo "usage: mirror-sync.sh [-f|--config-file file] [-m|--mode mode] [-h|--help]"
+  echo "usage: mirror-sync.sh [-f|--config-file file] [-m|--mode mode] [--sync-mirror bool] [-h|--help]"
   echo "       -f,--config-file  file   Specify input config file, default to path-to-script/data/repo.json"
-  echo "       -m,--mode   mode         Specify execute mode [init | sync], default to sync mode"
+  echo "       --sync-mirror  bool      Specify if mirror repo will be synced, default is true"
+  echo "       -m,--mode  mode          Specify execute mode [init | sync], default to sync mode"
   echo "       -h                       Display help page"
 }
 
@@ -118,6 +123,7 @@ load-config() {
       -h | --help) help-page && return 0 ;;
       -f | --config-file) CONFIG_FILE=${2} && shift 2 ;;
       -m | --mode) EXECUTE_MODE=${2} && shift 2 ;;
+      --sync-mirror) SYNC_MIRROR=${2} && shift 2 ;;
       -d | --debug) DEBUG=true && shift 1 ;;
       *) shift 1 ;;
     esac
