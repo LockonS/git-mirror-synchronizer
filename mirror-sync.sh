@@ -57,7 +57,7 @@ repo-set-remote-repo() {
   cd "$REPO_LOCAL_PATH"
   # check if remote repo has been configured already
   echo -e "${INDENT} Add remote repository ==> ${GREEN}$MIRROR_REMOTE_REPO_NAME${NC}	${BLUE}$MIRROR_REMOTE_REPO_URL${NC}"
-  if git remote | grep -q "^$MIRROR_REMOTE_REPO_NAME$"; then
+  if ! git remote | grep "^$MIRROR_REMOTE_REPO_NAME$"; then
     [[ $DRY_RUN == true ]] && echo "git remote add $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL" && return 0
     git remote add "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
   fi
@@ -107,46 +107,34 @@ running-check() {
 }
 
 load-config() {
-  local OPT EXECUTE_MODE CONFIG_FILE
-  OPT=("$@")
-  EXECUTE_MODE="sync"
-  CONFIG_FILE=""
-  while getopts 'f:m:dh' OPT; do
-    case $OPT in
-      f)
-        CONFIG_FILE=$OPTARG
-        ;;
-      m)
-        EXECUTE_MODE=$OPTARG
-        ;;
-      d)
-        DEBUG=true
-        ;;
-      h)
-        help-page && return 0
-        ;;
-      ?)
-        echo -e "${RED}Unknown argument.${NC}" && exit 1
-        ;;
+  local EXECUTE_MODE CONFIG_FILE DEBUG
+  EXECUTE_MODE='sync'
+  CONFIG_FILE=$SCRIPT_DIR/data/repo.json
+
+  while [ $# -gt 0 ]; do
+    case ${1} in
+      -f | --config-file) CONFIG_FILE=${2} && shift 2 ;;
+      -m | --mode) EXECUTE_MODE=${2} && shift 2 ;;
+      -d | --debug) DEBUG=true && shift 1 ;;
+      *) shift 1 ;;
     esac
   done
-  shift $((OPTIND - 1))
-  # apply default config file if config file is empty
-  [[ -z $CONFIG_FILE ]] && CONFIG_FILE=$SCRIPT_DIR/data/repo.json
+
   # check if config file exist
   [[ ! -f $CONFIG_FILE ]] && echo "Config file ${YELLOW}$CONFIG_FILE${NC} does not exist" && return 1
   # validate execute mode
   if [[ $EXECUTE_MODE != 'init' ]] && [[ $EXECUTE_MODE != 'sync' ]]; then
-    echo -e "Execute mode ${YELLOW}$EXECUTE_MODE${NC} not exist" && return 1
+    echo -e "Execute mode ${YELLOW}$EXECUTE_MODE${NC} not exist"
+    return 1
   fi
 
-  local CONFIG REPO_LENGTH REPO_DATA PROGRESS_INDEX
+  local CONFIG_CONTENT REPO_LENGTH REPO_DATA PROGRESS_INDEX
   # get config file content
-  CONFIG=$(cat "$CONFIG_FILE")
+  CONFIG_CONTENT=$(cat "$CONFIG_FILE")
   # traverse repo list
-  REPO_LENGTH=$(echo "$CONFIG" | jq '. | length')
+  REPO_LENGTH=$(echo "$CONFIG_CONTENT" | jq '. | length')
   for ((REPO_INDEX = 0; REPO_INDEX < REPO_LENGTH; REPO_INDEX++)); do
-    REPO_DATA=$(echo "$CONFIG" | jq ".[$REPO_INDEX]")
+    REPO_DATA=$(echo "$CONFIG_CONTENT" | jq ".[$REPO_INDEX]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
     echo -e "--------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------\n"
     repo-parse "$REPO_DATA" "$EXECUTE_MODE"
