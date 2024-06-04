@@ -25,7 +25,7 @@ repo-sync() {
   echo -e "Sync project ==> ${GREEN}$REPO_NAME${NC} to ${BLUE}$MIRROR_REMOTE_REPO_NAME${NC}"
   echo -e "Project path: $REPO_LOCAL_PATH"
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
-  echo -e "Tracking branch: $REPO_BRANCH_NAME"
+  echo -e "Tracking branch: ${BLUE}$REPO_BRANCH_NAME${NC}"
   if [[ $DRY_RUN == true ]]; then
     echo "git -C $REPO_LOCAL_PATH fetch $TRACK_REMOTE_REPO_NAME"
     echo "git -C $REPO_LOCAL_PATH reset --hard $TRACK_REMOTE_REPO_NAME/$REPO_BRANCH_NAME"
