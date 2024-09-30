@@ -190,13 +190,13 @@ git_repo_download_release() {
   # traverse release assets list
   local ASSET_INDEX ASSET_LENGTH
   ASSET_LENGTH=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.assets | length')
-  if [[ "$ASSET_LENGTH" -eq 0  ]]; then
-      op_prompt_msg "No release artifact found"
-      return 0
+  if [[ "$ASSET_LENGTH" -eq 0 ]]; then
+    op_prompt_msg "No release artifact found"
+    return 0
   fi
   op_prompt_checkpoint "Downloading ${GREEN}${ASSET_LENGTH}${NC} assets for ${REPO_AUTHOR}/${REPO_NAME}"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
-    ASSET_DATA=$(printf "%s"  "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
+    ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
     git_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA"
   done
 }
@@ -224,11 +224,13 @@ git_repo_release_asset_download() {
 
   if [[ -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}" ]]; then
     op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} already downloaded"
-    return 0 
+    return 0
   fi
-  
+
   CMD_DOWNLOAD_ASSET="curl -L --progress-bar -o '${RELEASE_STORAGE_PATH}/${ASSET_NAME}' '${ASSET_DOWNLOAD_URL}'"
   op_run_cmd "$CMD_DOWNLOAD_ASSET"
+
+  # remove files if download operation didn't finish successfully
   if [[ "$?" -ne 0 ]]; then
     rm "${RELEASE_STORAGE_PATH}/${ASSET_NAME}"
   fi
@@ -340,4 +342,3 @@ op_run_cmd() {
 
 git_mirror_prepare
 git_mirror_entry "$@"
-
