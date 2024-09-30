@@ -11,6 +11,7 @@ DOWNLOAD_RELEASE="false"
 EXECUTE_MODE="sync"
 DEFAULT_RELEASE_STORAGE="/data/storage/git-release"
 DEFAULT_CONFIG_FILE="$SCRIPT_DIR/data/repo.json"
+GITHUB_ACCESS_TOKEN_FILE="$SCRIPT_DIR/data/github-access-token"
 
 # color
 BLACK=$(tput setaf 0)
@@ -177,10 +178,10 @@ git_repo_download_release() {
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
 
   # download release data
-  REPO_RELEASE_DATA=$(curl -X GET -L -s "$REPO_RELEASE_DATA_URL")
+  REPO_RELEASE_DATA=$(curl -X GET "-H Authorization: token $GITHUB_ACCESS_TOKEN" -L -s "$REPO_RELEASE_DATA_URL")
 
   # extract release tag name
-  RELEASE_TAG_NAME=$(echo "$REPO_RELEASE_DATA" | jq '.name' | tr -d '"')
+  RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.name' | tr -d '"')
 
   # print downloading assets message
   # check if the corresponding release was already downloaded
@@ -192,10 +193,10 @@ git_repo_download_release() {
 
   # traverse release assets list
   local ASSET_INDEX ASSET_LENGTH
-  ASSET_LENGTH=$(echo "$REPO_RELEASE_DATA" | jq '.assets | length')
+  ASSET_LENGTH=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.assets | length')
   op_prompt_checkpoint "Downloading ${ASSET_LENGTH} assets for ${REPO_AUTHOR}/${REPO_NAME}"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
-    ASSET_DATA=$(echo "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
+    ASSET_DATA=$(printf "%s"  "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
     git_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA"
   done
 }
@@ -288,6 +289,8 @@ git_mirror_prepare() {
   if [[ ! -f $LOG_FILE ]]; then
     touch $LOG_FILE
   fi
+  GITHUB_ACCESS_TOKEN=$(cat "$GITHUB_ACCESS_TOKEN_FILE")
+  export GITHUB_ACCESS_TOKEN
   echo -e "\n\n--------------- $EXECUTE_TIME ---------------\n"
 }
 
