@@ -6,5 +6,7 @@
 	"mirror":[{
 		"repoName":"gitlab",
 		"repoUrl":"git@gitlab.com:LockonS/git-mirror-synchronizer.git"
-	}]
+	}],
+	"downloadRelease": "true",
+	"releaseStoragePath": "/data/git-release"
 }]
