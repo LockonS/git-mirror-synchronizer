@@ -315,7 +315,9 @@ op_prompt_debug() {
 
 op_run_cmd() {
   local CMD_STR=${*}
-  echo -e "\n${GREY}${CMD_STR}${NC}\n"
+  if [[ "$DEBUG" == true ]]; then
+    echo -e "\n${GREY}${CMD_STR}${NC}\n"
+  fi
   if [[ "$DRY_RUN" != true ]]; then
     if ! zsh -c "$CMD_STR"; then
       op_prompt_error "Error: command execute failure"
@@ -325,7 +327,9 @@ op_run_cmd() {
 
 op_run_cmd_with_result() {
   local CMD_STR=${*}
-  echo -e "\n${GREY}${CMD_STR}${NC}\n"
+  if [[ "$DEBUG" == true ]]; then
+    echo -e "\n${GREY}${CMD_STR}${NC}\n"
+  fi
   if [[ "$DRY_RUN" != true ]]; then
     VAR_CMD_EXEC_STDOUT=$(zsh -c "$CMD_STR")
     export VAR_CMD_EXEC_STDOUT
