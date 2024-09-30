@@ -173,7 +173,7 @@ git_repo_download_release() {
   REPO_IDENTIFIER=$(git_repo_extract_identifier "$REPO_URL" "github.com")
   REPO_AUTHOR=$(echo "$REPO_IDENTIFIER" | awk -F'[/:]' '{print $2}')
   REPO_NAME=$(echo "$REPO_IDENTIFIER" | awk -F'[/:]' '{print $3}' | sed 's/\.git$//')
-  op_prompt_checkpoint "Downloading release assets for ${REPO_AUTHOR}/${REPO_NAME}"
+  op_prompt_checkpoint "Downloading release assets for ${NC}${GREEN}${REPO_AUTHOR}/${REPO_NAME}${NC}"
 
   # assemble release data url
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
