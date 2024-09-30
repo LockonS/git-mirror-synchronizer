@@ -4,10 +4,9 @@
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 
 # configuration
-EXECUTE_MODE_OPTION=("init" "sync")
+EXECUTE_MODE_OPTION=("init" "sync" "download")
 DRY_RUN="false"
 SYNC_MIRROR="true"
-DOWNLOAD_RELEASE="false"
 EXECUTE_MODE="sync"
 DEFAULT_RELEASE_STORAGE="/data/storage/git-release"
 DEFAULT_CONFIG_FILE="$SCRIPT_DIR/data/repo.json"
@@ -145,8 +144,8 @@ git_repo_process() {
   done
 
   # if download release option is configured
-  local REPO_RELEASE_DOWNLOAD
-  if [[ "$DOWNLOAD_RELEASE" == true ]]; then
+  if [[ $EXECUTE_MODE == "download" ]]; then
+    local REPO_RELEASE_DOWNLOAD
     REPO_RELEASE_DOWNLOAD=$(echo "$REPO_DATA" | jq ".downloadRelease" | tr -d '"')
     if [[ "$REPO_RELEASE_DOWNLOAD" != "true" ]]; then
       op_prompt_debug "This repo is configurated not to download the release artifacts"
@@ -254,11 +253,6 @@ git_mirror_entry() {
       ;;
     --sync-mirror)
       SYNC_MIRROR=${2}
-      shift
-      shift
-      ;;
-    --download-release)
-      DOWNLOAD_RELEASE=${2}
       shift
       shift
       ;;

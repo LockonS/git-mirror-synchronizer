@@ -12,19 +12,19 @@
 
 ### Usage
 
-
-
 - Default config file should be named as `repo.json` and put in `data` folder (already ignored in `.gitignore`). 
     
     ```
     .
     ├── data
-    │   └── repo.json
+    │   ├── repo.json
+    │   └── github-access-token
     ├── mirror-sync.sh
     ├── readme.md
     └── template.json
     ```
-    
+
+- Github access token should be put in `github-access-token` file under `data` folder, otherwise it's very likely to reach the api's rate limit.
     
 - **Initialize Mode**: If a new git repository or mirror repository is added, run initialize mode to apply the setting. This operation is idempotence and can be run over and over again without messing up existed repository.
 
