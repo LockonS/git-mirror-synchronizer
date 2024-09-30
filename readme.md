@@ -75,7 +75,9 @@
         	},{
         		"repoName":"<Name of the other mirror repo>",
         		"repoUrl":"<Url of the other mirror repo>"
-        	}]
+        	}],
+            "downloadRelease": "<Download latetst github release, boolean>",
+            "releaseStoragePath": "<Override default storage location for downloaded artifacts>"
         }
     ]
     ```
