@@ -121,6 +121,18 @@ git_repo_process() {
     return 0
   fi
 
+  # download release artifacts
+  if [[ $EXECUTE_MODE == "download" ]]; then
+    local REPO_RELEASE_DOWNLOAD
+    REPO_RELEASE_DOWNLOAD=$(echo "$REPO_DATA" | jq ".downloadRelease" | tr -d '"')
+    if [[ "$REPO_RELEASE_DOWNLOAD" != "true" ]]; then
+      op_prompt_debug "This repo is configurated not to download the release artifacts"
+      return 0
+    fi
+    git_repo_download_release "$REPO_DATA"
+    return 0
+  fi
+
   # initialize local repo
   if [[ $EXECUTE_MODE == "init" ]]; then
     git_repo_init_local_repo "$REPO_NAME" "$REPO_LOCAL_PATH" "$TRACK_REMOTE_REPO_NAME" "$TRACK_REMOTE_REPO_URL"
@@ -138,21 +150,10 @@ git_repo_process() {
     fi
     if [[ $EXECUTE_MODE == "init" ]]; then
       git_repo_set_remote_repo "$REPO_NAME" "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
-    else
+    elif [[ $EXECUTE_MODE == "sync" ]]; then
       git_repo_sync_remote_repo "$REPO_NAME" "$REPO_LOCAL_PATH" "$TRACK_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_NAME"
     fi
   done
-
-  # if download release option is configured
-  if [[ $EXECUTE_MODE == "download" ]]; then
-    local REPO_RELEASE_DOWNLOAD
-    REPO_RELEASE_DOWNLOAD=$(echo "$REPO_DATA" | jq ".downloadRelease" | tr -d '"')
-    if [[ "$REPO_RELEASE_DOWNLOAD" != "true" ]]; then
-      op_prompt_debug "This repo is configurated not to download the release artifacts"
-      return 0
-    fi
-    git_repo_download_release "$REPO_DATA"
-  fi
 }
 
 # currently only GitHub is supported
