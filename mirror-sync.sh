@@ -178,7 +178,7 @@ git_repo_download_release() {
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
 
   # download release data
-  REPO_RELEASE_DATA=$(curl -X GET "-H Authorization: token $GITHUB_ACCESS_TOKEN" -L -s "$REPO_RELEASE_DATA_URL")
+  REPO_RELEASE_DATA=$(curl -X GET -H "Authorization: token $GITHUB_ACCESS_TOKEN" -L -s "$REPO_RELEASE_DATA_URL")
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.name' | tr -d '"')
@@ -186,15 +186,15 @@ git_repo_download_release() {
   # print downloading assets message
   # check if the corresponding release was already downloaded
   RELEASE_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_AUTHOR}/${REPO_NAME}/${RELEASE_TAG_NAME}"
-  if [[ -d "$RELEASE_STORAGE_PATH" ]]; then
-    op_prompt_warn "Release $RELEASE_TAG_NAME already downloaded, skip"
-    return 0
-  fi
 
   # traverse release assets list
   local ASSET_INDEX ASSET_LENGTH
   ASSET_LENGTH=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.assets | length')
-  op_prompt_checkpoint "Downloading ${ASSET_LENGTH} assets for ${REPO_AUTHOR}/${REPO_NAME}"
+  if [[ "$ASSET_LENGTH" -eq 0  ]]; then
+      op_prompt_msg "No release artifact found"
+      return 0
+  fi
+  op_prompt_checkpoint "Downloading ${GREEN}${ASSET_LENGTH}${NC} assets for ${REPO_AUTHOR}/${REPO_NAME}"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
     ASSET_DATA=$(printf "%s"  "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
     git_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA"
@@ -221,8 +221,17 @@ git_repo_release_asset_download() {
 
   op_prompt_checkpoint "Downloading asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
   mkdir -p "$RELEASE_STORAGE_PATH"
+
+  if [[ -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}" ]]; then
+    op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} already downloaded"
+    return 0 
+  fi
+  
   CMD_DOWNLOAD_ASSET="curl -L --progress-bar -o '${RELEASE_STORAGE_PATH}/${ASSET_NAME}' '${ASSET_DOWNLOAD_URL}'"
   op_run_cmd "$CMD_DOWNLOAD_ASSET"
+  if [[ "$?" -ne 0 ]]; then
+    rm "${RELEASE_STORAGE_PATH}/${ASSET_NAME}"
+  fi
 }
 
 git_mirror_entry() {
@@ -324,25 +333,11 @@ op_run_cmd() {
   if [[ "$DRY_RUN" != true ]]; then
     if ! zsh -c "$CMD_STR"; then
       op_prompt_error "Error: command execute failure"
+      return 1
     fi
-  fi
-}
-
-op_run_cmd_with_result() {
-  local CMD_STR=${*}
-  if [[ "$DEBUG" == true ]]; then
-    echo -e "\n${GREY}${CMD_STR}${NC}\n"
-  fi
-  if [[ "$DRY_RUN" != true ]]; then
-    VAR_CMD_EXEC_STDOUT=$(zsh -c "$CMD_STR")
-    export VAR_CMD_EXEC_STDOUT
   fi
 }
 
 git_mirror_prepare
 git_mirror_entry "$@"
 
-# TODO
-#  1. optimize the workmode and flow, do refactor
-#  2. update the prompt message
-#  3. add modification to script for release download support for other platforms
