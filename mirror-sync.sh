@@ -181,7 +181,7 @@ git_repo_download_release() {
   REPO_RELEASE_DATA=$(curl -X GET -H "Authorization: token $GITHUB_ACCESS_TOKEN" -L -s "$REPO_RELEASE_DATA_URL")
 
   # extract release tag name
-  RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.name' | tr -d '"')
+  RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
 
   # print downloading assets message
   # check if the corresponding release was already downloaded
