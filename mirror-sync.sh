@@ -173,6 +173,7 @@ git_repo_download_release() {
   REPO_IDENTIFIER=$(git_repo_extract_identifier "$REPO_URL" "github.com")
   REPO_AUTHOR=$(echo "$REPO_IDENTIFIER" | awk -F'[/:]' '{print $2}')
   REPO_NAME=$(echo "$REPO_IDENTIFIER" | awk -F'[/:]' '{print $3}' | sed 's/\.git$//')
+  op_prompt_checkpoint "Downloading release assets for ${REPO_AUTHOR}/${REPO_NAME}"
 
   # assemble release data url
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
@@ -194,7 +195,7 @@ git_repo_download_release() {
     op_prompt_msg "No release artifact found"
     return 0
   fi
-  op_prompt_checkpoint "Downloading ${GREEN}${ASSET_LENGTH}${NC} assets for ${REPO_AUTHOR}/${REPO_NAME}"
+  op_prompt_msg "Found ${GREEN}${ASSET_LENGTH}${NC} assets"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
     ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
     git_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA"
