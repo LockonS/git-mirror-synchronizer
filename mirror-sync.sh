@@ -89,7 +89,7 @@ git_repo_set_remote_repo() {
   MIRROR_REMOTE_REPO_URL=${4}
 
   # check if remote repo has been configured already
-  if ! git remote | grep -q "^$MIRROR_REMOTE_REPO_NAME$"; then
+  if ! git -C "$REPO_LOCAL_PATH" remote | grep -q "^$MIRROR_REMOTE_REPO_NAME$"; then
     op_prompt_checkpoint "Setup remote repo ${BOLD}${GREEN}${MIRROR_REMOTE_REPO_NAME}${NC}"
     echo -e "${MIRROR_REMOTE_REPO_NAME}: ${BOLD}${MIRROR_REMOTE_REPO_URL}${NC}"
     local CMD_ADD_REMOTE_REPO="git -C $REPO_LOCAL_PATH remote add $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL"
@@ -164,7 +164,9 @@ git_repo_download_release() {
   local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
   REPO_URL=$(echo "$REPO_DATA" | jq ".trackRemoteRepoUrl" | tr -d '"')
   REPO_RELEASE_STORAGE=$(echo "$REPO_DATA" | jq ".releaseStoragePath" | tr -d '"')
-  REPO_RELEASE_STORAGE=${REPO_RELEASE_STORAGE:-"$DEFAULT_RELEASE_STORAGE"}
+  if [[ -z "$REPO_RELEASE_STORAGE" ]] || [[ "$REPO_RELEASE_STORAGE" == "null" ]]; then
+    REPO_RELEASE_STORAGE="$DEFAULT_RELEASE_STORAGE"
+  fi
 
   # extract repo creator and name from url
   REPO_IDENTIFIER=$(git_repo_extract_identifier "$REPO_URL" "github.com")
