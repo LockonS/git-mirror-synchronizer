@@ -8,6 +8,8 @@ EXECUTE_MODE_OPTION=("init" "sync" "download")
 DRY_RUN="false"
 SYNC_MIRROR="true"
 EXECUTE_MODE="sync"
+DOWNLOAD_RETRY=3
+DOWNLOAD_RETRY_DELAY=2
 DEFAULT_RELEASE_STORAGE="/data/storage/git-release"
 DEFAULT_CONFIG_FILE="$SCRIPT_DIR/data/repo.json"
 GITHUB_ACCESS_TOKEN_FILE="$SCRIPT_DIR/data/github-access-token"
@@ -28,7 +30,7 @@ BOLD=$(tput bold)
 git_mirror_sync_manual() {
   echo "usage: mirror-sync.sh [-f|--config-file file] [-m|--mode mode] [--sync-mirror boolean] [-h|--help]"
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/repo.json"
-  echo "       -m,--mode        mode      Specify execute mode [init | sync], default is 'sync' mode"
+  echo "       -m,--mode        mode      Specify execute mode [init | sync | download], default is 'sync' mode"
   echo "       --sync-mirror    boolean   Specify if mirror repo will be synced, default is true"
   echo "       -h                         Display help page"
 }
@@ -108,18 +110,19 @@ git_repo_process() {
 
   # configuration variables
   local REPO_NAME REPO_LOCAL_PATH TRACK_REMOTE_REPO_NAME TRACK_REMOTE_REPO_URL MIRROR_LENGTH
-  REPO_NAME=$(echo "$REPO_DATA" | jq '.repoName' | tr -d '"')
-  REPO_NAME=$(echo "$REPO_DATA" | jq '.repoName' | tr -d '"')
   REPO_LOCAL_PATH=$(echo "$REPO_DATA" | jq '.repoLocalPath' | tr -d '"')
   TRACK_REMOTE_REPO_NAME=$(echo "$REPO_DATA" | jq '.trackRemoteRepoName' | tr -d '"')
   TRACK_REMOTE_REPO_URL=$(echo "$REPO_DATA" | jq '.trackRemoteRepoUrl' | tr -d '"')
-  MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
 
   # validate configuration of tracking remote repo
   if [[ -z $REPO_LOCAL_PATH ]] || [[ -z $TRACK_REMOTE_REPO_NAME ]] || [[ -z $TRACK_REMOTE_REPO_URL ]]; then
     op_prompt_warn "Tracking repository configuration is not complete, abort task"
     return 0
   fi
+
+  # read repo name from url
+  REPO_NAME=$(basename "$TRACK_REMOTE_REPO_URL" | sed 's/\.git$//')
+  MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
 
   # download release artifacts
   if [[ $EXECUTE_MODE == "download" ]]; then
@@ -129,7 +132,11 @@ git_repo_process() {
       op_prompt_debug "This repo is configurated not to download the release artifacts"
       return 0
     fi
-    git_repo_download_release "$REPO_DATA"
+    if [[ "$TRACK_REMOTE_REPO_URL" == *github.com* ]]; then
+      github_repo_download_release "$REPO_DATA"
+    else
+      op_prompt_warn "Release download feature not supported for $TRACK_REMOTE_REPO_URL"
+    fi
     return 0
   fi
 
@@ -157,12 +164,12 @@ git_repo_process() {
 }
 
 # currently only GitHub is supported
-git_repo_download_release() {
+github_repo_download_release() {
   # parameters
   local REPO_DATA=${1}
 
   # configuration variables
-  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
+  local REPO_URL REPO_RELEASE_STORAGE REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
   REPO_URL=$(echo "$REPO_DATA" | jq ".trackRemoteRepoUrl" | tr -d '"')
   REPO_RELEASE_STORAGE=$(echo "$REPO_DATA" | jq ".releaseStoragePath" | tr -d '"')
   if [[ -z "$REPO_RELEASE_STORAGE" ]] || [[ "$REPO_RELEASE_STORAGE" == "null" ]]; then
@@ -170,16 +177,15 @@ git_repo_download_release() {
   fi
 
   # extract repo creator and name from url
-  REPO_IDENTIFIER=$(git_repo_extract_identifier "$REPO_URL" "github.com")
-  REPO_AUTHOR=$(echo "$REPO_IDENTIFIER" | awk -F'[/:]' '{print $2}')
-  REPO_NAME=$(echo "$REPO_IDENTIFIER" | awk -F'[/:]' '{print $3}' | sed 's/\.git$//')
+  REPO_AUTHOR=$(echo "$REPO_URL" | awk -F/ '{print $(NF-1)}')
+  REPO_NAME=$(basename "$REPO_URL" | sed 's/\.git$//')
   op_prompt_checkpoint "Downloading release assets for ${NC}${GREEN}${REPO_AUTHOR}/${REPO_NAME}${NC}"
 
   # assemble release data url
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
 
   # download release data
-  REPO_RELEASE_DATA=$(curl -X GET -H "Authorization: token $GITHUB_ACCESS_TOKEN" -L -s "$REPO_RELEASE_DATA_URL")
+  REPO_RELEASE_DATA=$(curl -X GET -retry "$DOWNLOAD_RETRY" --retry-delay "$DOWNLOAD_RETRY_DELAY" -H "Authorization: token $GITHUB_ACCESS_TOKEN" -L -s "$REPO_RELEASE_DATA_URL")
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
@@ -198,18 +204,11 @@ git_repo_download_release() {
   op_prompt_msg "Found ${GREEN}${ASSET_LENGTH}${NC} assets"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
     ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
-    git_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA"
+    github_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA"
   done
 }
 
-git_repo_extract_identifier() {
-  local REPO_URL DELIMITER_STR
-  REPO_URL=${1}
-  DELIMITER_STR=${2}
-  echo "$REPO_URL" | sed "s/${DELIMITER_STR}/\n/g" | sed -n '2p'
-}
-
-git_repo_release_asset_download() {
+github_repo_release_asset_download() {
   # parameters
   local RELEASE_STORAGE_PATH ASSET_DATA
   RELEASE_STORAGE_PATH="${1}"
@@ -228,7 +227,7 @@ git_repo_release_asset_download() {
     return 0
   fi
 
-  CMD_DOWNLOAD_ASSET="curl -L --progress-bar -o '${RELEASE_STORAGE_PATH}/${ASSET_NAME}' '${ASSET_DOWNLOAD_URL}'"
+  CMD_DOWNLOAD_ASSET="curl -L --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY --progress-bar -o '${RELEASE_STORAGE_PATH}/${ASSET_NAME}' '${ASSET_DOWNLOAD_URL}'"
   op_run_cmd "$CMD_DOWNLOAD_ASSET"
 
   # remove files if download operation didn't finish successfully
@@ -242,23 +241,28 @@ git_mirror_entry() {
 
   while [ $# -gt 0 ]; do
     case ${1} in
-    -h | --help) git_mirror_sync_manual && return 0 ;;
-    -f | --config-file)
-      CONFIG_FILE=${2:-"$DEFAULT_CONFIG_FILE"}
-      shift
-      shift
-      ;;
-    -m | --mode)
-      EXECUTE_MODE=${2}
-      shift
-      shift
-      ;;
-    --sync-mirror)
-      SYNC_MIRROR=${2}
-      shift
-      shift
-      ;;
-    *) shift ;;
+      -h | --help) git_mirror_sync_manual && return 0 ;;
+      -f | --config-file)
+        CONFIG_FILE=${2:-"$DEFAULT_CONFIG_FILE"}
+        shift
+        shift
+        ;;
+      -m | --mode)
+        EXECUTE_MODE=${2}
+        shift
+        shift
+        ;;
+      --sync-mirror)
+        SYNC_MIRROR=${2}
+        shift
+        shift
+        ;;
+      --project)
+        TARGET_PROJECT=${2}
+        shift
+        shift
+        ;;
+      *) shift ;;
     esac
   done
 

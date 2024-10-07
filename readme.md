@@ -65,7 +65,6 @@
     ```json
     [
         {
-        	"repoName":"<Repository name to display>",
         	"repoLocalPath":"<Local path to save the repository>",
         	"trackRemoteRepoName":"<Name of the upstream repo, origin if not altered>",
         	"trackRemoteRepoUrl":"<Url of the upstream repo>",
