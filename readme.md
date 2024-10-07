@@ -76,7 +76,8 @@
         		"repoUrl":"<Url of the other mirror repo>"
         	}],
             "downloadRelease": "<Download latetst github release, boolean>",
-            "releaseStoragePath": "<Override default storage location for downloaded artifacts>"
+            "releaseStoragePath": "<Override default storage location for downloaded artifacts>",
+            "excludeKeywords": "<Keywords to exclude the artifacts, split with ','>"
         }
     ]
     ```

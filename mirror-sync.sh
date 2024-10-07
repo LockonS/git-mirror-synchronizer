@@ -237,7 +237,7 @@ github_repo_release_asset_download() {
     IFS=',' read -A EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
     for KEYWORD in "${EXCLUDE_KEYWORD_LIST[@]}"; do
       if [[ "$ASSET_NAME" =~ $KEYWORD ]]; then
-        op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} ignored"
+        op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} is configured to be ignored"
         return 0
       fi
     done
