@@ -193,9 +193,8 @@ github_repo_download_release() {
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
 
   # download release data
-  CMD_RETRIEVE_DATA="curl -X GET -retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_RELEASE_DATA_URL'"
-  echo "$CMD_RETRIEVE_DATA"
-  REPO_RELEASE_DATA=$(zsh -c "$CMD_RETRIEVE_DATA")
+  CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_RELEASE_DATA_URL'"
+  REPO_RELEASE_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
