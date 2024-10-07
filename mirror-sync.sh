@@ -37,10 +37,10 @@ git_mirror_sync_manual() {
 
 git_repo_sync_remote_repo() {
   local REPO_NAME REPO_LOCAL_PATH TRACK_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME
-  REPO_NAME=${1}
-  REPO_LOCAL_PATH=${2}
-  TRACK_REMOTE_REPO_NAME=${3}
-  MIRROR_REMOTE_REPO_NAME=${4}
+  REPO_NAME="${1}"
+  REPO_LOCAL_PATH="${2}"
+  TRACK_REMOTE_REPO_NAME="${3}"
+  MIRROR_REMOTE_REPO_NAME="${4}"
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
 
   # print repo sync message
@@ -63,10 +63,10 @@ git_repo_sync_remote_repo() {
 
 git_repo_init_local_repo() {
   local REPO_NAME REPO_LOCAL_PATH TRACK_REMOTE_REPO_NAME TRACK_REMOTE_REPO_URL
-  REPO_NAME=${1}
-  REPO_LOCAL_PATH=${2}
-  TRACK_REMOTE_REPO_NAME=${3}
-  TRACK_REMOTE_REPO_URL=${4}
+  REPO_NAME="${1}"
+  REPO_LOCAL_PATH="${2}"
+  TRACK_REMOTE_REPO_NAME="${3}"
+  TRACK_REMOTE_REPO_URL="${4}"
 
   # print repo init message
   op_prompt_checkpoint "Initialize project ${BOLD}${GREEN}${REPO_NAME}${NC} to local path ${BOLD}${BLUE}${REPO_LOCAL_PATH}${NC}"
@@ -104,9 +104,10 @@ git_repo_set_remote_repo() {
 
 git_repo_process() {
   # parameters
-  local REPO_DATA EXECUTE_MODE
-  REPO_DATA=${1}
-  EXECUTE_MODE=${2}
+  local REPO_DATA EXECUTE_MODE SINGLE_PROJECT
+  REPO_DATA="${1}"
+  EXECUTE_MODE="${2}"
+  SINGLE_PROJECT="${3}"
 
   # configuration variables
   local REPO_NAME REPO_LOCAL_PATH TRACK_REMOTE_REPO_NAME TRACK_REMOTE_REPO_URL MIRROR_LENGTH
@@ -122,6 +123,12 @@ git_repo_process() {
 
   # read repo name from url
   REPO_NAME=$(basename "$TRACK_REMOTE_REPO_URL" | sed 's/\.git$//')
+  if [[ -n "$SINGLE_PROJECT" ]]; then
+    if [[ "$REPO_NAME" != "$SINGLE_PROJECT" ]]; then
+      return 0
+    fi
+  fi
+
   MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
 
   # download release artifacts
@@ -166,7 +173,7 @@ git_repo_process() {
 # currently only GitHub is supported
 github_repo_download_release() {
   # parameters
-  local REPO_DATA=${1}
+  local REPO_DATA="${1}"
 
   # configuration variables
   local REPO_URL REPO_RELEASE_STORAGE REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
@@ -175,6 +182,7 @@ github_repo_download_release() {
   if [[ -z "$REPO_RELEASE_STORAGE" ]] || [[ "$REPO_RELEASE_STORAGE" == "null" ]]; then
     REPO_RELEASE_STORAGE="$DEFAULT_RELEASE_STORAGE"
   fi
+  EXCLUDE_KEYWORDS=$(echo "$REPO_DATA" | jq ".excludeKeywords" | tr -d '"')
 
   # extract repo creator and name from url
   REPO_AUTHOR=$(echo "$REPO_URL" | awk -F/ '{print $(NF-1)}')
@@ -204,7 +212,7 @@ github_repo_download_release() {
   op_prompt_msg "Found ${GREEN}${ASSET_LENGTH}${NC} assets"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
     ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
-    github_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA"
+    github_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA" "$EXCLUDE_KEYWORDS"
   done
 }
 
@@ -213,6 +221,7 @@ github_repo_release_asset_download() {
   local RELEASE_STORAGE_PATH ASSET_DATA
   RELEASE_STORAGE_PATH="${1}"
   ASSET_DATA="${2}"
+  EXCLUDE_KEYWORDS="${3}"
 
   # configuration variables
   local ASSET_NAME ASSET_DOWNLOAD_URL CMD_DOWNLOAD_ASSET
@@ -222,6 +231,18 @@ github_repo_release_asset_download() {
   op_prompt_checkpoint "Downloading asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
   mkdir -p "$RELEASE_STORAGE_PATH"
 
+  # compare exclude keywords
+  if [[ -n "$EXCLUDE_KEYWORDS" ]]; then
+    IFS=',' read -r -a EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
+    for KEYWORD in "${EXCLUDE_KEYWORD_LIST[@]}"; do
+      op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} ignored"
+      if [[ "$ASSET_NAME" =~ $KEYWORD ]]; then
+        return 0
+      fi
+    done
+  fi
+
+  # skip already downloaded assets
   if [[ -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}" ]]; then
     op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} already downloaded"
     return 0
@@ -238,6 +259,7 @@ github_repo_release_asset_download() {
 
 git_mirror_entry() {
   local CONFIG_FILE="$DEFAULT_CONFIG_FILE"
+  local SINGLE_PROJECT
 
   while [ $# -gt 0 ]; do
     case ${1} in
@@ -258,7 +280,7 @@ git_mirror_entry() {
         shift
         ;;
       --project)
-        TARGET_PROJECT=${2}
+        SINGLE_PROJECT=${2}
         shift
         shift
         ;;
@@ -290,7 +312,7 @@ git_mirror_entry() {
     REPO_DATA=$(echo "$REPO_CONFIGURATION" | jq ".[$REPO_INDEX]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
     echo -e "\n--------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------\n"
-    git_repo_process "$REPO_DATA" "$EXECUTE_MODE"
+    git_repo_process "$REPO_DATA" "$EXECUTE_MODE" "$SINGLE_PROJECT"
   done
 }
 
