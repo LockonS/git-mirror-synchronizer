@@ -176,7 +176,7 @@ github_repo_download_release() {
   local REPO_DATA="${1}"
 
   # configuration variables
-  local REPO_URL REPO_RELEASE_STORAGE REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
+  local REPO_URL REPO_RELEASE_STORAGE REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
   REPO_URL=$(echo "$REPO_DATA" | jq ".trackRemoteRepoUrl" | tr -d '"')
   REPO_RELEASE_STORAGE=$(echo "$REPO_DATA" | jq ".releaseStoragePath" | tr -d '"')
   if [[ -z "$REPO_RELEASE_STORAGE" ]] || [[ "$REPO_RELEASE_STORAGE" == "null" ]]; then
@@ -193,7 +193,9 @@ github_repo_download_release() {
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
 
   # download release data
-  REPO_RELEASE_DATA=$(curl -X GET -retry "$DOWNLOAD_RETRY" --retry-delay "$DOWNLOAD_RETRY_DELAY" -H "Authorization: token $GITHUB_ACCESS_TOKEN" -L -s "$REPO_RELEASE_DATA_URL")
+  CMD_RETRIEVE_DATA="curl -X GET -retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_RELEASE_DATA_URL'"
+  echo "$CMD_RETRIEVE_DATA"
+  REPO_RELEASE_DATA=$(zsh -c "$CMD_RETRIEVE_DATA")
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
