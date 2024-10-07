@@ -8,6 +8,8 @@ EXECUTE_MODE_OPTION=("init" "sync" "download")
 DRY_RUN="false"
 SYNC_MIRROR="true"
 EXECUTE_MODE="sync"
+DOWNLOAD_RETRY=3
+DOWNLOAD_RETRY_DELAY=2
 DEFAULT_RELEASE_STORAGE="/data/storage/git-release"
 DEFAULT_CONFIG_FILE="$SCRIPT_DIR/data/repo.json"
 GITHUB_ACCESS_TOKEN_FILE="$SCRIPT_DIR/data/github-access-token"
@@ -28,17 +30,17 @@ BOLD=$(tput bold)
 git_mirror_sync_manual() {
   echo "usage: mirror-sync.sh [-f|--config-file file] [-m|--mode mode] [--sync-mirror boolean] [-h|--help]"
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/repo.json"
-  echo "       -m,--mode        mode      Specify execute mode [init | sync], default is 'sync' mode"
+  echo "       -m,--mode        mode      Specify execute mode [init | sync | download], default is 'sync' mode"
   echo "       --sync-mirror    boolean   Specify if mirror repo will be synced, default is true"
   echo "       -h                         Display help page"
 }
 
 git_repo_sync_remote_repo() {
   local REPO_NAME REPO_LOCAL_PATH TRACK_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME
-  REPO_NAME=${1}
-  REPO_LOCAL_PATH=${2}
-  TRACK_REMOTE_REPO_NAME=${3}
-  MIRROR_REMOTE_REPO_NAME=${4}
+  REPO_NAME="${1}"
+  REPO_LOCAL_PATH="${2}"
+  TRACK_REMOTE_REPO_NAME="${3}"
+  MIRROR_REMOTE_REPO_NAME="${4}"
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
 
   # print repo sync message
@@ -61,10 +63,10 @@ git_repo_sync_remote_repo() {
 
 git_repo_init_local_repo() {
   local REPO_NAME REPO_LOCAL_PATH TRACK_REMOTE_REPO_NAME TRACK_REMOTE_REPO_URL
-  REPO_NAME=${1}
-  REPO_LOCAL_PATH=${2}
-  TRACK_REMOTE_REPO_NAME=${3}
-  TRACK_REMOTE_REPO_URL=${4}
+  REPO_NAME="${1}"
+  REPO_LOCAL_PATH="${2}"
+  TRACK_REMOTE_REPO_NAME="${3}"
+  TRACK_REMOTE_REPO_URL="${4}"
 
   # print repo init message
   op_prompt_checkpoint "Initialize project ${BOLD}${GREEN}${REPO_NAME}${NC} to local path ${BOLD}${BLUE}${REPO_LOCAL_PATH}${NC}"
@@ -102,24 +104,32 @@ git_repo_set_remote_repo() {
 
 git_repo_process() {
   # parameters
-  local REPO_DATA EXECUTE_MODE
-  REPO_DATA=${1}
-  EXECUTE_MODE=${2}
+  local REPO_DATA EXECUTE_MODE SINGLE_PROJECT
+  REPO_DATA="${1}"
+  EXECUTE_MODE="${2}"
+  SINGLE_PROJECT="${3}"
 
   # configuration variables
   local REPO_NAME REPO_LOCAL_PATH TRACK_REMOTE_REPO_NAME TRACK_REMOTE_REPO_URL MIRROR_LENGTH
-  REPO_NAME=$(echo "$REPO_DATA" | jq '.repoName' | tr -d '"')
-  REPO_NAME=$(echo "$REPO_DATA" | jq '.repoName' | tr -d '"')
   REPO_LOCAL_PATH=$(echo "$REPO_DATA" | jq '.repoLocalPath' | tr -d '"')
   TRACK_REMOTE_REPO_NAME=$(echo "$REPO_DATA" | jq '.trackRemoteRepoName' | tr -d '"')
   TRACK_REMOTE_REPO_URL=$(echo "$REPO_DATA" | jq '.trackRemoteRepoUrl' | tr -d '"')
-  MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
 
   # validate configuration of tracking remote repo
   if [[ -z $REPO_LOCAL_PATH ]] || [[ -z $TRACK_REMOTE_REPO_NAME ]] || [[ -z $TRACK_REMOTE_REPO_URL ]]; then
     op_prompt_warn "Tracking repository configuration is not complete, abort task"
     return 0
   fi
+
+  # read repo name from url
+  REPO_NAME=$(basename "$TRACK_REMOTE_REPO_URL" | sed 's/\.git$//')
+  if [[ -n "$SINGLE_PROJECT" ]]; then
+    if [[ "$REPO_NAME" != "$SINGLE_PROJECT" ]]; then
+      return 0
+    fi
+  fi
+
+  MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
 
   # download release artifacts
   if [[ $EXECUTE_MODE == "download" ]]; then
@@ -129,7 +139,11 @@ git_repo_process() {
       op_prompt_debug "This repo is configurated not to download the release artifacts"
       return 0
     fi
-    git_repo_download_release "$REPO_DATA"
+    if [[ "$TRACK_REMOTE_REPO_URL" == *github.com* ]]; then
+      github_repo_download_release "$REPO_DATA"
+    else
+      op_prompt_warn "Release download feature not supported for $TRACK_REMOTE_REPO_URL"
+    fi
     return 0
   fi
 
@@ -157,29 +171,30 @@ git_repo_process() {
 }
 
 # currently only GitHub is supported
-git_repo_download_release() {
+github_repo_download_release() {
   # parameters
-  local REPO_DATA=${1}
+  local REPO_DATA="${1}"
 
   # configuration variables
-  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
+  local REPO_URL REPO_RELEASE_STORAGE REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
   REPO_URL=$(echo "$REPO_DATA" | jq ".trackRemoteRepoUrl" | tr -d '"')
   REPO_RELEASE_STORAGE=$(echo "$REPO_DATA" | jq ".releaseStoragePath" | tr -d '"')
   if [[ -z "$REPO_RELEASE_STORAGE" ]] || [[ "$REPO_RELEASE_STORAGE" == "null" ]]; then
     REPO_RELEASE_STORAGE="$DEFAULT_RELEASE_STORAGE"
   fi
+  EXCLUDE_KEYWORDS=$(echo "$REPO_DATA" | jq ".excludeKeywords" | tr -d '"')
 
   # extract repo creator and name from url
-  REPO_IDENTIFIER=$(git_repo_extract_identifier "$REPO_URL" "github.com")
-  REPO_AUTHOR=$(echo "$REPO_IDENTIFIER" | awk -F'[/:]' '{print $2}')
-  REPO_NAME=$(echo "$REPO_IDENTIFIER" | awk -F'[/:]' '{print $3}' | sed 's/\.git$//')
+  REPO_AUTHOR=$(echo "$REPO_URL" | awk -F/ '{print $(NF-1)}')
+  REPO_NAME=$(basename "$REPO_URL" | sed 's/\.git$//')
   op_prompt_checkpoint "Downloading release assets for ${NC}${GREEN}${REPO_AUTHOR}/${REPO_NAME}${NC}"
 
   # assemble release data url
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
 
   # download release data
-  REPO_RELEASE_DATA=$(curl -X GET -H "Authorization: token $GITHUB_ACCESS_TOKEN" -L -s "$REPO_RELEASE_DATA_URL")
+  CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_RELEASE_DATA_URL'"
+  REPO_RELEASE_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
@@ -198,22 +213,16 @@ git_repo_download_release() {
   op_prompt_msg "Found ${GREEN}${ASSET_LENGTH}${NC} assets"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
     ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
-    git_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA"
+    github_repo_release_asset_download "$RELEASE_STORAGE_PATH" "$ASSET_DATA" "$EXCLUDE_KEYWORDS"
   done
 }
 
-git_repo_extract_identifier() {
-  local REPO_URL DELIMITER_STR
-  REPO_URL=${1}
-  DELIMITER_STR=${2}
-  echo "$REPO_URL" | sed "s/${DELIMITER_STR}/\n/g" | sed -n '2p'
-}
-
-git_repo_release_asset_download() {
+github_repo_release_asset_download() {
   # parameters
   local RELEASE_STORAGE_PATH ASSET_DATA
   RELEASE_STORAGE_PATH="${1}"
   ASSET_DATA="${2}"
+  EXCLUDE_KEYWORDS="${3}"
 
   # configuration variables
   local ASSET_NAME ASSET_DOWNLOAD_URL CMD_DOWNLOAD_ASSET
@@ -223,12 +232,24 @@ git_repo_release_asset_download() {
   op_prompt_checkpoint "Downloading asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
   mkdir -p "$RELEASE_STORAGE_PATH"
 
+  # compare exclude keywords
+  if [[ -n "$EXCLUDE_KEYWORDS" ]]; then
+    IFS=',' read -A EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
+    for KEYWORD in "${EXCLUDE_KEYWORD_LIST[@]}"; do
+      if [[ "$ASSET_NAME" =~ $KEYWORD ]]; then
+        op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} is configured to be ignored"
+        return 0
+      fi
+    done
+  fi
+
+  # skip already downloaded assets
   if [[ -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}" ]]; then
     op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} already downloaded"
     return 0
   fi
 
-  CMD_DOWNLOAD_ASSET="curl -L --progress-bar -o '${RELEASE_STORAGE_PATH}/${ASSET_NAME}' '${ASSET_DOWNLOAD_URL}'"
+  CMD_DOWNLOAD_ASSET="curl -L --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY --progress-bar -o '${RELEASE_STORAGE_PATH}/${ASSET_NAME}' '${ASSET_DOWNLOAD_URL}'"
   op_run_cmd "$CMD_DOWNLOAD_ASSET"
 
   # remove files if download operation didn't finish successfully
@@ -239,26 +260,32 @@ git_repo_release_asset_download() {
 
 git_mirror_entry() {
   local CONFIG_FILE="$DEFAULT_CONFIG_FILE"
+  local SINGLE_PROJECT
 
   while [ $# -gt 0 ]; do
     case ${1} in
-    -h | --help) git_mirror_sync_manual && return 0 ;;
-    -f | --config-file)
-      CONFIG_FILE=${2:-"$DEFAULT_CONFIG_FILE"}
-      shift
-      shift
-      ;;
-    -m | --mode)
-      EXECUTE_MODE=${2}
-      shift
-      shift
-      ;;
-    --sync-mirror)
-      SYNC_MIRROR=${2}
-      shift
-      shift
-      ;;
-    *) shift ;;
+      -h | --help) git_mirror_sync_manual && return 0 ;;
+      -f | --config-file)
+        CONFIG_FILE=${2:-"$DEFAULT_CONFIG_FILE"}
+        shift
+        shift
+        ;;
+      -m | --mode)
+        EXECUTE_MODE=${2}
+        shift
+        shift
+        ;;
+      --sync-mirror)
+        SYNC_MIRROR=${2}
+        shift
+        shift
+        ;;
+      --project)
+        SINGLE_PROJECT=${2}
+        shift
+        shift
+        ;;
+      *) shift ;;
     esac
   done
 
@@ -286,7 +313,7 @@ git_mirror_entry() {
     REPO_DATA=$(echo "$REPO_CONFIGURATION" | jq ".[$REPO_INDEX]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
     echo -e "\n--------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------\n"
-    git_repo_process "$REPO_DATA" "$EXECUTE_MODE"
+    git_repo_process "$REPO_DATA" "$EXECUTE_MODE" "$SINGLE_PROJECT"
   done
 }
 
