@@ -233,10 +233,10 @@ github_repo_release_asset_download() {
 
   # compare exclude keywords
   if [[ -n "$EXCLUDE_KEYWORDS" ]]; then
-    IFS=',' read -r -a EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
+    IFS=',' read -A EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
     for KEYWORD in "${EXCLUDE_KEYWORD_LIST[@]}"; do
-      op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} ignored"
       if [[ "$ASSET_NAME" =~ $KEYWORD ]]; then
+        op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} ignored"
         return 0
       fi
     done
