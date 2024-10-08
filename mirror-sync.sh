@@ -323,7 +323,9 @@ git_mirror_prepare() {
   if [[ ! -f $LOG_FILE ]]; then
     touch $LOG_FILE
   fi
-  GITHUB_ACCESS_TOKEN=$(cat "$GITHUB_ACCESS_TOKEN_FILE")
+  if [[ -f "$GITHUB_ACCESS_TOKEN_FILE" ]]; then
+    GITHUB_ACCESS_TOKEN=$(cat "$GITHUB_ACCESS_TOKEN_FILE")
+  fi
   export GITHUB_ACCESS_TOKEN
   echo -e "\n\n--------------- $EXECUTE_TIME ---------------\n"
 }
