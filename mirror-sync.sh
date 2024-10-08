@@ -266,7 +266,7 @@ git_mirror_entry() {
     case ${1} in
       -h | --help) git_mirror_sync_manual && return 0 ;;
       -f | --config-file)
-        CONFIG_FILE=${2:-"$DEFAULT_CONFIG_FILE"}
+        CONFIG_FILE=${2}
         shift
         shift
         ;;
