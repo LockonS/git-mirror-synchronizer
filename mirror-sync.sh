@@ -132,6 +132,7 @@ git_repo_process() {
   MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
 
   # download release artifacts
+  local REPO_URL_MARKER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS
   if [[ $EXECUTE_MODE == "download" ]]; then
     local REPO_RELEASE_DOWNLOAD
     REPO_RELEASE_DOWNLOAD=$(echo "$REPO_DATA" | jq ".downloadRelease" | tr -d '"')
@@ -140,7 +141,11 @@ git_repo_process() {
       return 0
     fi
     if [[ "$TRACK_REMOTE_REPO_URL" == *github.com* ]]; then
-      github_repo_download_release "$REPO_DATA"
+      REPO_URL_MARKER=$(github_repo_extract_name "$REPO_DATA")
+      REPO_RELEASE_STORAGE=$(github_repo_extract_storage_path "$REPO_DATA")
+      EXCLUDE_KEYWORDS=$(echo "$REPO_DATA" | jq ".excludeKeywords" | tr -d '"')
+      github_repo_download_release "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE" "$EXCLUDE_KEYWORDS"
+      github_repo_download_tag "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE"
     else
       op_prompt_warn "Release download feature not supported for $TRACK_REMOTE_REPO_URL"
     fi
@@ -171,26 +176,49 @@ git_repo_process() {
 }
 
 # currently only GitHub is supported
-github_repo_download_release() {
+github_repo_extract_name() {
   # parameters
   local REPO_DATA="${1}"
 
   # configuration variables
-  local REPO_URL REPO_RELEASE_STORAGE REPO_AUTHOR REPO_NAME REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
+  local REPO_URL REPO_AUTHOR REPO_NAME
   REPO_URL=$(echo "$REPO_DATA" | jq ".trackRemoteRepoUrl" | tr -d '"')
-  REPO_RELEASE_STORAGE=$(echo "$REPO_DATA" | jq ".releaseStoragePath" | tr -d '"')
-  if [[ -z "$REPO_RELEASE_STORAGE" ]] || [[ "$REPO_RELEASE_STORAGE" == "null" ]]; then
-    REPO_RELEASE_STORAGE="$DEFAULT_RELEASE_STORAGE"
-  fi
-  EXCLUDE_KEYWORDS=$(echo "$REPO_DATA" | jq ".excludeKeywords" | tr -d '"')
 
   # extract repo creator and name from url
   REPO_AUTHOR=$(echo "$REPO_URL" | awk -F/ '{print $(NF-1)}')
   REPO_NAME=$(basename "$REPO_URL" | sed 's/\.git$//')
-  op_prompt_checkpoint "Downloading release assets for ${NC}${GREEN}${REPO_AUTHOR}/${REPO_NAME}${NC}"
+  REPO_URL_MARKER="${REPO_AUTHOR}/${REPO_NAME}"
+  echo "$REPO_URL_MARKER"
+}
+
+# currently only GitHub is supported
+github_repo_extract_storage_path() {
+  # parameters
+  local REPO_DATA="${1}"
+
+  # configuration variables
+  local REPO_RELEASE_STORAGE
+  REPO_RELEASE_STORAGE=$(echo "$REPO_DATA" | jq ".releaseStoragePath" | tr -d '"')
+  if [[ -z "$REPO_RELEASE_STORAGE" ]] || [[ "$REPO_RELEASE_STORAGE" == "null" ]]; then
+    REPO_RELEASE_STORAGE="$DEFAULT_RELEASE_STORAGE"
+  fi
+  echo "$REPO_RELEASE_STORAGE"
+}
+
+# currently only GitHub is supported
+github_repo_download_release() {
+  # parameters
+  local REPO_URL_MARKER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS
+  REPO_URL_MARKER="${1}"
+  REPO_RELEASE_STORAGE="${2}"
+  EXCLUDE_KEYWORDS="${3}"
+
+  # configuration variables
+  local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
+  op_prompt_checkpoint "Downloading release assets for ${NC}${GREEN}${REPO_URL_MARKER}${NC}"
 
   # assemble release data url
-  REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_AUTHOR}/${REPO_NAME}/releases/latest"
+  REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_URL_MARKER}/releases/latest"
 
   # download release data
   CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_RELEASE_DATA_URL'"
@@ -201,7 +229,7 @@ github_repo_download_release() {
 
   # print downloading assets message
   # check if the corresponding release was already downloaded
-  RELEASE_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_AUTHOR}/${REPO_NAME}/${RELEASE_TAG_NAME}"
+  RELEASE_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_URL_MARKER}/${RELEASE_TAG_NAME}"
 
   # traverse release assets list
   local ASSET_INDEX ASSET_LENGTH
@@ -217,9 +245,64 @@ github_repo_download_release() {
   done
 }
 
+# currently only GitHub is supported, only tar.gz archive will be downloaded
+github_repo_download_tag() {
+  # parameters
+  local REPO_URL_MARKER REPO_RELEASE_STORAGE
+  REPO_URL_MARKER="${1}"
+  REPO_RELEASE_STORAGE="${2}"
+
+  # configuration variables
+  local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_NAME TAG_STORAGE_PATH
+  op_prompt_checkpoint "Downloading tags assets for ${NC}${GREEN}${REPO_URL_MARKER}${NC}"
+
+  # assemble release data url
+  REPO_TAGS_DATA_URL="https://api.github.com/repos/${REPO_URL_MARKER}/tags"
+
+  # download release data
+  CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_TAGS_DATA_URL'"
+  REPO_TAGS_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
+
+  # traverse release assets list
+  local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME TAG_TARBALL_URL CMD_DOWNLOAD_ASSET
+  ASSET_LENGTH=$(printf "%s" "$REPO_TAGS_DATA" | jq '.assets | length')
+  if [[ "$ASSET_LENGTH" -eq 0 ]]; then
+    op_prompt_msg "No tags artifact found"
+    return 0
+  fi
+
+  op_prompt_msg "Download assets with latest tags"
+  ASSET_DATA=$(printf "%s" "$REPO_TAGS_DATA" | jq ".[0]")
+
+  # extract release tag name
+  TAG_NAME=$(printf "%s" "$ASSET_DATA" | jq ".name" | tr -d '"')
+  ASSET_NAME="${TAG_NAME}.tar.gz"
+
+  # extract release tag name
+  ASSET_DOWNLOAD_URL=$(printf "%s" "$ASSET_DATA" | jq ".tarball_url" | tr -d '"')
+
+  # print downloading assets message
+  # check if the corresponding tag resource was already downloaded
+  TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_URL_MARKER}/${TAG_NAME}"
+
+  # skip already downloaded assets
+  if [[ -f "${TAG_STORAGE_PATH}/${ASSET_NAME}" ]]; then
+    op_prompt_msg "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} already downloaded"
+    return 0
+  fi
+
+  CMD_DOWNLOAD_ASSET="curl -L --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY --progress-bar -o '${TAG_STORAGE_PATH}/${ASSET_NAME}' '${ASSET_DOWNLOAD_URL}'"
+  op_run_cmd "$CMD_DOWNLOAD_ASSET"
+
+  # remove files if download operation didn't finish successfully
+  if [[ "$?" -ne 0 ]]; then
+    rm "${TAG_STORAGE_PATH}/${ASSET_NAME}"
+  fi
+}
+
 github_repo_release_asset_download() {
   # parameters
-  local RELEASE_STORAGE_PATH ASSET_DATA
+  local RELEASE_STORAGE_PATH ASSET_DATA EXCLUDE_KEYWORDS
   RELEASE_STORAGE_PATH="${1}"
   ASSET_DATA="${2}"
   EXCLUDE_KEYWORDS="${3}"
