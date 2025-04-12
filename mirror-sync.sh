@@ -284,8 +284,6 @@ github_repo_download_tag() {
     op_prompt_msg "No tags artifact found"
     return 0
   fi
-
-  op_prompt_msg "Download assets with latest tags"
   ASSET_DATA=$(printf "%s" "$REPO_TAGS_DATA" | jq ".[0]")
 
   # extract release tag name
