@@ -149,19 +149,17 @@ git_repo_process() {
     EXCLUDE_KEYWORDS=$(echo "$REPO_DATA" | jq ".excludeKeywords" | tr -d '"')
 
     # judge if release download is enabled
-    if [[ "$REPO_RELEASE_DOWNLOAD" != "true" ]]; then
-      op_prompt_debug "This repo is configurated not to download the release artifacts"
-      return 0
-    else
+    if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
       github_repo_download_release "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE" "$EXCLUDE_KEYWORDS"
+    else
+      op_prompt_debug "This repo is configurated not to download the release artifacts"
     fi
 
     # judge if tag download is enabled
     if [[ "$REPO_TAG_DOWNLOAD" != "true" ]]; then
-      op_prompt_debug "This repo is configurated not to download the tag artifacts"
-      return 0
-    else
       github_repo_download_tag "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE"
+    else
+      op_prompt_debug "This repo is configurated not to download the tag artifacts"
     fi
 
     return 0
