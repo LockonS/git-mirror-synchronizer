@@ -157,7 +157,7 @@ git_repo_process() {
     fi
 
     # judge if tag download is enabled
-    if [[ "$REPO_TAG_DOWNLOAD" != "true" ]]; then
+    if [[ "$REPO_TAG_DOWNLOAD" == "true" ]]; then
       github_repo_download_tag "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE"
     else
       op_prompt_debug "This repo is configurated not to download the tag artifacts"
@@ -267,7 +267,7 @@ github_repo_download_tag() {
   REPO_RELEASE_STORAGE="${2}"
 
   # configuration variables
-  local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_NAME TAG_STORAGE_PATH
+  local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
   op_prompt_checkpoint "Downloading tags assets for ${NC}${GREEN}${REPO_URL_MARKER}${NC}"
 
   # assemble release data url
@@ -279,7 +279,7 @@ github_repo_download_tag() {
 
   # traverse release assets list
   local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME TAG_TARBALL_URL CMD_DOWNLOAD_ASSET
-  ASSET_LENGTH=$(printf "%s" "$REPO_TAGS_DATA" | jq '.assets | length')
+  ASSET_LENGTH=$(printf "%s" "$REPO_TAGS_DATA" | jq '. | length')
   if [[ "$ASSET_LENGTH" -eq 0 ]]; then
     op_prompt_msg "No tags artifact found"
     return 0
@@ -298,6 +298,7 @@ github_repo_download_tag() {
   # print downloading assets message
   # check if the corresponding tag resource was already downloaded
   TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_URL_MARKER}/${TAG_NAME}"
+  mkdir -p "$TAG_STORAGE_PATH"
 
   # skip already downloaded assets
   if [[ -f "${TAG_STORAGE_PATH}/${ASSET_NAME}" ]]; then
