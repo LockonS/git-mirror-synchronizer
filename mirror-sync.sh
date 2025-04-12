@@ -452,7 +452,7 @@ op_prompt_debug() {
 
 op_run_cmd() {
   local CMD_STR=${*}
-  if [[ "$DEBUG" == true ]]; then
+  if [[ "$DEBUG" == true ]] || [[ "$DRY_RUN" == true ]]; then
     echo -e "\n${GREY}${CMD_STR}${NC}\n"
   fi
   if [[ "$DRY_RUN" != true ]]; then
