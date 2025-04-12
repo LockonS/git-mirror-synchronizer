@@ -134,21 +134,36 @@ git_repo_process() {
   # download release artifacts
   local REPO_URL_MARKER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS
   if [[ $EXECUTE_MODE == "download" ]]; then
-    local REPO_RELEASE_DOWNLOAD
-    REPO_RELEASE_DOWNLOAD=$(echo "$REPO_DATA" | jq ".downloadRelease" | tr -d '"')
+    local REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD
+    # release and tag asset download is disabled by default
+    REPO_RELEASE_DOWNLOAD=$(echo "$REPO_DATA" | jq ".downloadRelease // \"false\"" | tr -d '"')
+    REPO_TAG_DOWNLOAD=$(echo "$REPO_DATA" | jq ".downloadTag // \"false\"" | tr -d '"')
+
+    if [[ "$TRACK_REMOTE_REPO_URL" != *github.com* ]]; then
+      op_prompt_warn "Release download feature not supported for $TRACK_REMOTE_REPO_URL"
+      return 0
+    fi
+
+    REPO_URL_MARKER=$(github_repo_extract_name "$REPO_DATA")
+    REPO_RELEASE_STORAGE=$(github_repo_extract_storage_path "$REPO_DATA")
+    EXCLUDE_KEYWORDS=$(echo "$REPO_DATA" | jq ".excludeKeywords" | tr -d '"')
+
+    # judge if release download is enabled
     if [[ "$REPO_RELEASE_DOWNLOAD" != "true" ]]; then
       op_prompt_debug "This repo is configurated not to download the release artifacts"
       return 0
-    fi
-    if [[ "$TRACK_REMOTE_REPO_URL" == *github.com* ]]; then
-      REPO_URL_MARKER=$(github_repo_extract_name "$REPO_DATA")
-      REPO_RELEASE_STORAGE=$(github_repo_extract_storage_path "$REPO_DATA")
-      EXCLUDE_KEYWORDS=$(echo "$REPO_DATA" | jq ".excludeKeywords" | tr -d '"')
-      github_repo_download_release "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE" "$EXCLUDE_KEYWORDS"
-      github_repo_download_tag "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE"
     else
-      op_prompt_warn "Release download feature not supported for $TRACK_REMOTE_REPO_URL"
+      github_repo_download_release "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE" "$EXCLUDE_KEYWORDS"
     fi
+
+    # judge if tag download is enabled
+    if [[ "$REPO_TAG_DOWNLOAD" != "true" ]]; then
+      op_prompt_debug "This repo is configurated not to download the tag artifacts"
+      return 0
+    else
+      github_repo_download_tag "$REPO_URL_MARKER" "$REPO_RELEASE_STORAGE"
+    fi
+
     return 0
   fi
 
