@@ -6,6 +6,7 @@ SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 # configuration
 EXECUTE_MODE_OPTION=("init" "sync" "download")
 DRY_RUN="false"
+DEBUG="false"
 SYNC_MIRROR="true"
 EXECUTE_MODE="sync"
 DOWNLOAD_RETRY=3
@@ -379,6 +380,14 @@ git_mirror_entry() {
       --project)
         SINGLE_PROJECT=${2}
         shift
+        shift
+        ;;
+      --dry-run)
+        DRY_RUN="true"
+        shift
+        ;;
+      --debug)
+        DEBUG="true"
         shift
         ;;
       *) shift ;;
