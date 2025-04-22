@@ -11,7 +11,7 @@ SYNC_MIRROR="true"
 EXECUTE_MODE="sync"
 DOWNLOAD_RETRY=3
 DOWNLOAD_RETRY_DELAY=2
-DEFAULT_RELEASE_STORAGE="/data/storage/git-release"
+DEFAULT_RELEASE_STORAGE="/opt/git/git-release"
 DEFAULT_CONFIG_FILE="$SCRIPT_DIR/data/repo.json"
 GITHUB_ACCESS_TOKEN_FILE="$SCRIPT_DIR/data/github-access-token"
 
