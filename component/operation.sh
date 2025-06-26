@@ -48,6 +48,7 @@ op_run_cmd_with_result() {
 op_load_runtime_setting() {
   local CONFIG_FILE
   CONFIG_FILE="${1}"
+  # figure out the priority of the configuration
 }
 
 # initialize local repo
