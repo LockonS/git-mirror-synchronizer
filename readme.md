@@ -29,22 +29,22 @@
 - **Initialize Mode**: If a new git repository or mirror repository is added, run initialize mode to apply the setting. This operation is idempotence and can be run over and over again without messing up existed repository.
 
     ```shell
-    $ ./mirror-sync.sh -m init
+    $ ./sync-tool.sh -m init
     ```
 
 - **Synchronize Mode**: Get update from upstream and sync mirror repositories.
 
     ```shell
-    $ ./mirror-sync.sh -m sync
+    $ ./sync-tool.sh -m sync
     ```
 
 - Setup crontab task with log output and run this script in daily basis.
 
     ```shell
     # recommended: use default config file
-    0 1 * * * path-to-repo/mirror-sync.sh | tee -a /var/log/mirror-sync.log
+    0 1 * * * path-to-repo/sync-tool.sh | tee -a /var/log/mirror-sync.log
     # specify a config file
-    0 1 * * * path-to-repo/mirror-sync.sh -f path-to-data/repo.json | tee -a /var/log/mirror-sync.log
+    0 1 * * * path-to-repo/sync-tool.sh -f path-to-data/repo.json | tee -a /var/log/mirror-sync.log
     ```
 
 ### Dependency

@@ -1,29 +1,29 @@
 #!/usr/bin/env zsh
 
-SYNCHRONIZER_PATH=$(dirname "$(readlink -f "$0")")
-export SYNCHRONIZER_PATH
+SYNC_TOOL_PATH=$(dirname "$(readlink -f "$0")")
+export SYNC_TOOL_PATH
 
 # resource path
-export COMPONENT_PATH="$SYNCHRONIZER_PATH/component"
-export DATA_PATH="$SYNCHRONIZER_PATH/data"
-export HISTORY_PATH="$SYNCHRONIZER_PATH/history"
+export COMPONENT_PATH="$SYNC_TOOL_PATH/component"
+export DATA_PATH="$SYNC_TOOL_PATH/data"
+export LOG_PATH="$SYNC_TOOL_PATH/log"
 
 # include component
-source "$COMPONENT_PATH/environment.sh"
 source "$COMPONENT_PATH/common.sh"
+source "$COMPONENT_PATH/environment.sh"
 source "$COMPONENT_PATH/operation.sh"
 
 # function manual
-synchronizer_manual() {
-  echo "usage: mirror-sync.sh [-f|--config-file file] [-m|--mode mode] [--sync-mirror boolean] [-h|--help]"
+sync_tool_manual() {
+  echo "usage: mirror-sync.sh "
+  echo "       -h,--help,help             Show manual page"
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/repo.json"
   echo "       -m,--mode        mode      Specify execute mode [init | sync | download], default is 'sync' mode"
   echo "       --sync-mirror    boolean   Specify if mirror repo will be synced, default is true"
-  echo "       -h                         Display help page"
 }
 
 # shellcheck disable=SC2034
-synchronizer_entry() {
+sync_tool_entry() {
   local TARGET_CONFIG_FILE="$DEFAULT_CONFIG_FILE"
   local TARGET_DATA_FILE="$DEFAULT_DATA_FILE"
   local TARGET_REPO TARGET_EXEC_MODE
@@ -31,7 +31,7 @@ synchronizer_entry() {
   while [ $# -gt 0 ]; do
     case ${1} in
       '-h' | '--help' | 'help')
-        synchronizer_manual
+        sync_tool_manual
         return 0
         ;;
       '-f' | '--config-file')
@@ -73,13 +73,13 @@ synchronizer_entry() {
 
   if [[ -z "$TARGET_EXEC_MODE" ]]; then
     op_prompt_error "Error: execution mode could not be empty"
-    synchronizer_manual
+    sync_tool_manual
     exit 1
   fi
 
   if [[ ! "${EXEC_MODE_OPTION[*]}" =~ $TARGET_EXEC_MODE ]]; then
     op_prompt_error "Error: execution mode '$TARGET_EXEC_MODE' not exist"
-    synchronizer_manual
+    sync_tool_manual
     exit 1
   fi
 
@@ -110,4 +110,4 @@ git_mirror_prepare() {
 }
 
 git_mirror_prepare
-synchronizer_entry "$@"
+sync_tool_entry "$@"

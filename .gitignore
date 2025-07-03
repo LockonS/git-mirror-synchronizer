@@ -1,5 +1,7 @@
 .DS_Store
 data/
 history/
+log/
+*.log
 .idea/
 .vscode
