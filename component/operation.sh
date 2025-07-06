@@ -46,8 +46,12 @@ op_run_cmd_with_result() {
 
 # load setting from config file and in-line parameter
 op_load_runtime_setting() {
-  local CONFIG_FILE
+  local CONFIG_FILE CONFIG_CONTENT
   CONFIG_FILE="${1}"
+  CONFIG_CONTENT=$(cat "$CONFIG_FILE")
+  DEFAULT_SYNC_MIRROR_OPTION=$(jq ".syncMirror" <"$CONFIG_CONTENT")
+  DEFAULT_REPO_STORAGE_PATH=$(jq ".repoStoragePath" <"$CONFIG_CONTENT")
+
   # figure out the priority of the configuration
 }
 
