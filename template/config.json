@@ -1,0 +1,16 @@
+[
+  {
+    "repo": {
+      "storagePath": "/opt/git/git-repo"
+    },
+    "release": {
+      "storagePath": "/opt/git/git-release",
+      "download": "true",
+      "keptVersionNum": "3"
+    },
+    "tag": {
+      "download": "true",
+      "keptVersionNum": "3"
+    }
+  }
+]

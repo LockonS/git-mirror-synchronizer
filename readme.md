@@ -44,7 +44,7 @@
     # recommended: use default config file
     0 1 * * * path-to-repo/sync-tool.sh | tee -a /var/log/mirror-sync.log
     # specify a config file
-    0 1 * * * path-to-repo/sync-tool.sh -f path-to-data/repo.json | tee -a /var/log/mirror-sync.log
+    0 1 * * * path-to-repo/sync-tool.sh -f path-to-data/config.json | tee -a /var/log/mirror-sync.log
     ```
 
 ### Dependency

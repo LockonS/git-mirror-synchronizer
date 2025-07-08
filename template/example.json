@@ -1,0 +1,31 @@
+[
+  {
+    "upstream": {
+      "name": "origin",
+      "repoUrl": "https://github.com/LockonS/git-mirror-synchronizer.git"
+    },
+    "repo": {
+      "storagePath": "/opt/git/git-repo",
+      "pathPrefix": "tool",
+      "identifier": "Dreamacro/Clash-Dashboard"
+    },
+    "release": {
+      "storagePath": "/opt/git/git-release",
+      "pathPrefix": "tool",
+      "identifier": "Dreamacro/Clash-Dashboard",
+      "download": "true",
+      "keptVersionNum": "3"
+    },
+    "tag": {
+      "download": "true",
+      "keptVersionNum": "3"
+    },
+    "mirror": [
+      {
+        "name": "gitlab",
+        "repoUrl": "git@gitlab.dreamisty.com:mirror/wallbreaker/clash-dashboard.git",
+        "forcePush": "false"
+      }
+    ]
+  }
+]
