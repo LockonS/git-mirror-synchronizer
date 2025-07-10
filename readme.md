@@ -7,10 +7,22 @@
     3. Push updates to another mirror repository listed configuration, or do nothing if there's no mirror repository to sync.
  
 > **Scenario** 
-> I've got a self-hosted git server and trying to backup some repositories from GitHub and keep them up-to-date automatically. A simple shell script triggered by crontab is enough to do the job at first. As the tracking list getting longer and I'd like this sync job to be neat and clean so here is this script.
-> I would definitely be happy if this script also helps some of others save the troubles. 
+> I've got a self-hosted git server and trying to back up some repositories from GitHub and keep them up-to-date automatically. A simple shell script triggered by crontab is enough to do the job at first. As the tracking list getting longer and I'd like this sync job to be neat and clean so here is this script.
+> I would definitely be happy if this script also helps some of the others save the troubles. 
 
-### Usage
+### Setup
+
+- The base config file is located at `template/config.json`, this defines the default configuration.
+- In order to override the default configuration with custom setup, there are two options.
+  1. Create `data` folder and create `config.json` file under it.
+  2. Place the config file anywhere and pass it with the in-line arguments `-f` or `--config-file`.
+- The configuration override priority will be 
+
+```
+data.json (repo setting) > data/config.json (custom global override) > template/config.json (project default) 
+```
+
+### ~~Usage (deprecated)~~
 
 - Default config file should be named as `repo.json` and put in `data` folder (already ignored in `.gitignore`). 
     
