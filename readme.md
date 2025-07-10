@@ -12,14 +12,33 @@
 
 ### Setup
 
-- The base config file is located at `template/config.json`, this defines the default configuration.
-- In order to override the default configuration with custom setup, there are two options.
-  1. Create `data` folder and create `config.json` file under it.
-  2. Place the config file anywhere and pass it with the in-line arguments `-f` or `--config-file`.
-- The configuration override priority will be 
+#### Mandatory
+
+- If you follow the default setup, make sure `/opt/git/` directory is available.
+- Customize the repo config data based on the example.
+
+#### Optional
+
+- The configuration override priority will be
 
 ```
-data.json (repo setting) > data/config.json (custom global override) > template/config.json (project default) 
+repo.json (repo setting) > data/config.json (custom global override) > template/config.json (project default) 
+```
+
+- The project default config file is located at `template/config.json`, this defines the default configuration.
+- In order to override the default configuration with custom setup, there are two options.
+  1. Create `data` folder and create `config.json` file under it.
+  2. Place the config file anywhere and pass it with the command-line arguments `-f` or `--config-file`.
+- GitHub access token should be placed at `data/github/access-token`, otherwise it's very likely to reach GitHub api rate limit if you have a long list.
+
+- The file tree should look like below.
+```
+.
+├── data
+│   ├── config.json
+│   └── repo.json
+└── template
+    └── config.json
 ```
 
 ### ~~Usage (deprecated)~~

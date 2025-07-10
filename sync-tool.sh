@@ -49,16 +49,6 @@ sync_tool_entry() {
         shift
         shift
         ;;
-      '--sync-mirror')
-        SYNC_MIRROR=${2}
-        shift
-        shift
-        ;;
-      '--project')
-        SINGLE_PROJECT=${2}
-        shift
-        shift
-        ;;
       '--dry-run')
         DRY_RUN="true"
         shift

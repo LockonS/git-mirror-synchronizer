@@ -1,10 +1,7 @@
 #!/usr/bin/env zsh
 
-export EXEC_MODE_OPTION=("init" "sync" "download")
-export FLAG_STATE=("true" "false" "inherit")
-
+export EXEC_MODE_OPTION=("sync" "download")
 export DRY_RUN="false"
-export SYNC_MIRROR="true"
 
 export DOWNLOAD_RETRY=3
 export DOWNLOAD_RETRY_DELAY=2
