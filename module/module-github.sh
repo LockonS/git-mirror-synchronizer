@@ -2,6 +2,14 @@
 
 # function and variables in this file is github exclusive
 export GITHUB_ACCESS_TOKEN_FILE="$DATA_PATH/github/github-access-token"
+export GITHUB_ACCESS_TOKEN
+
+op_load_github_access_token() {
+  if [[ -f "$GITHUB_ACCESS_TOKEN_FILE" ]]; then
+    GITHUB_ACCESS_TOKEN=$(cat "$GITHUB_ACCESS_TOKEN_FILE")
+  fi
+}
+op_load_github_access_token
 
 # extract repo name from repo data
 op_extract_repo_url_marker() {

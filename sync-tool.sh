@@ -67,7 +67,7 @@ sync_tool_entry() {
     exit 1
   fi
 
-  if [[ ! "${EXEC_MODE_OPTION[*]}" =~ $TARGET_EXEC_MODE ]]; then
+  if ! printf "%s\n" "${EXEC_MODE_OPTION[@]}" | grep -qx "$TARGET_EXEC_MODE"; then
     op_prompt_error "Error: execution mode '$TARGET_EXEC_MODE' not exist"
     sync_tool_manual
     exit 1
@@ -86,9 +86,8 @@ sync_tool_entry() {
   done
 }
 
-git_mirror_prepare() {
+sync_tool_prepare() {
   LOG_FILE='/var/log/mirror-sync.log'
-  EXECUTE_TIME=$(date '+%Y-%m-%d %H:%M:%S')
   if [[ ! -f $LOG_FILE ]]; then
     touch $LOG_FILE
   fi
@@ -99,5 +98,5 @@ git_mirror_prepare() {
   echo -e "\n\n--------------- $EXECUTE_TIME ---------------\n"
 }
 
-git_mirror_prepare
+sync_tool_prepare
 sync_tool_entry "$@"
