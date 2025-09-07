@@ -103,6 +103,7 @@ op_handle_repo_data() {
 op_handle_github_repo() {
   local REPO_RUNTIME_CONFIG REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD
   REPO_RUNTIME_CONFIG="$*"
+  REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
   REPO_SYNC=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.sync" | tr -d '"')
   REPO_RELEASE_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.download" | tr -d '"')
   REPO_TAG_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.download" | tr -d '"')
@@ -112,32 +113,32 @@ op_handle_github_repo() {
   fi
 
   if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
-    echo "wip"
+    RELEASE_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.storagePath" | tr -d '"')
+    RELEASE_EXCLUDE_KEYWORDS=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.excludeKeywords" | tr -d '"')
+    op_github_download_release "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS"
   fi
 
   if [[ "$REPO_TAG_DOWNLOAD" == "true" ]]; then
-    echo "wip"
+    TAG_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.storagePath" | tr -d '"')
+    op_github_download_tag "$REPO_URL" "$TAG_STORAGE_PATH"
   fi
-
-  # TODO add mirror handle
-
 }
 
 # initialize local repo
 op_process_git_repo() {
-  local REPO_RUNTIME_CONFIG REPO_IDENTIFIER REPO_CATALOG REPO_STORAGE_PATH REPO_LOCAL_PATH
+  local REPO_RUNTIME_CONFIG REPO_NAME REPO_CATALOG REPO_STORAGE_PATH REPO_LOCAL_PATH
   REPO_RUNTIME_CONFIG="$*"
   REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
   REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
-  REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
+  REPO_NAME=$(echo "$REPO_RUNTIME_CONFIG" | jq ".name" | tr -d '"')
   REPO_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.storagePath" | tr -d '"')
 
-  # extract repo identifier from url if not set
-  if [[ -z "$REPO_IDENTIFIER" ]]; then
-    REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
+  # extract repo name from url if not set
+  if [[ -z "$REPO_NAME" ]]; then
+    REPO_NAME=$(basename "$REPO_URL" | sed 's/\.git$//')
   fi
   # storage path will consists of catalog and marked by identifier
-  REPO_LOCAL_PATH="${REPO_STORAGE_PATH}/${REPO_CATALOG}/${REPO_IDENTIFIER}"
+  REPO_LOCAL_PATH="${REPO_STORAGE_PATH}/${REPO_CATALOG}/${REPO_NAME}"
   if [[ $DRY_RUN != "true" ]]; then
     mkdir -p "$(dirname "$REPO_LOCAL_PATH")"
   else
@@ -145,7 +146,7 @@ op_process_git_repo() {
   fi
 
   # print repo init message
-  op_prompt_checkpoint "Initialize project ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC} to local path ${BOLD}${BLUE}${REPO_LOCAL_PATH}${NC}"
+  op_prompt_checkpoint "Initialize project ${BOLD}${GREEN}${REPO_NAME}${NC} to local path ${BOLD}${BLUE}${REPO_LOCAL_PATH}${NC}"
 
   # assemble git command
   local CMD_GIT_CLONE_REPO="git clone $REPO_URL $REPO_LOCAL_PATH"
@@ -177,7 +178,7 @@ op_process_git_repo() {
       return 0
     fi
     op_set_remote_repo "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
-    op_push_remote_repo "$REPO_IDENTIFIER" "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_FORCE_PUSH"
+    op_push_remote_repo "$REPO_NAME" "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_FORCE_PUSH"
   done
 }
 
@@ -202,15 +203,15 @@ op_set_remote_repo() {
 
 # push to remote repo
 op_push_remote_repo() {
-  local REPO_IDENTIFIER REPO_LOCAL_PATH MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME MIRROR_FORCE_PUSH
-  REPO_IDENTIFIER="${1}"
+  local REPO_NAME REPO_LOCAL_PATH MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME MIRROR_FORCE_PUSH
+  REPO_NAME="${1}"
   REPO_LOCAL_PATH="${2}"
   MIRROR_REMOTE_REPO_NAME="${3}"
   MIRROR_FORCE_PUSH="${4}"
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
 
   # print repo sync message
-  op_prompt_checkpoint "Sync project ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC} to remote repo ${BOLD}${BLUE}${MIRROR_REMOTE_REPO_NAME}${NC}"
+  op_prompt_checkpoint "Sync project ${BOLD}${GREEN}${REPO_NAME}${NC} to remote repo ${BOLD}${BLUE}${MIRROR_REMOTE_REPO_NAME}${NC}"
   # echo -e "Project path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
   echo -e "Tracking branch: ${BLUE}${REPO_BRANCH_NAME}${NC}"
 

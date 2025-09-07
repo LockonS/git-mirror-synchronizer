@@ -25,10 +25,11 @@ op_github_extract_repo_identifier() {
 # currently only GitHub is supported
 op_github_download_release() {
   # parameters
-  local REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS
-  REPO_IDENTIFIER="${1}"
+  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS
+  REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   EXCLUDE_KEYWORDS="${3}"
+  REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
 
   # configuration variables
   local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
@@ -65,9 +66,10 @@ op_github_download_release() {
 # currently only GitHub is supported, only tar.gz archive will be downloaded
 op_github_download_tag() {
   # parameters
-  local REPO_IDENTIFIER REPO_RELEASE_STORAGE
-  REPO_IDENTIFIER="${1}"
+  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER
+  REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
+  REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
 
   # configuration variables
   local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
@@ -81,7 +83,7 @@ op_github_download_tag() {
   REPO_TAGS_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
 
   # traverse release assets list
-  local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME TAG_TARBALL_URL CMD_DOWNLOAD_ASSET
+  local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME CMD_DOWNLOAD_ASSET
   ASSET_LENGTH=$(printf "%s" "$REPO_TAGS_DATA" | jq '. | length')
   if [[ "$ASSET_LENGTH" -eq 0 ]]; then
     op_prompt_info "No tags artifact found"
