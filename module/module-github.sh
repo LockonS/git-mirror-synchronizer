@@ -12,33 +12,30 @@ op_load_github_access_token() {
 op_load_github_access_token
 
 # extract repo name from repo data
-op_extract_repo_url_marker() {
-  local REPO_DATA REPO_URL REPO_AUTHOR REPO_NAME REPO_URL_MARKER
-  local REPO_DATA="${1}"
-
-  REPO_URL=$(echo "$REPO_DATA" | jq ".trackRemoteRepoUrl" | tr -d '"')
+op_github_extract_repo_identifier() {
+  local REPO_URL="${1}"
 
   # extract repo creator and name from url
   REPO_AUTHOR=$(echo "$REPO_URL" | awk -F/ '{print $(NF-1)}')
   REPO_NAME=$(basename "$REPO_URL" | sed 's/\.git$//')
-  REPO_URL_MARKER="${REPO_AUTHOR}/${REPO_NAME}"
-  echo "$REPO_URL_MARKER"
+  REPO_IDENTIFIER="${REPO_AUTHOR}/${REPO_NAME}"
+  echo "$REPO_IDENTIFIER"
 }
 
 # currently only GitHub is supported
-op_download_github_release() {
+op_github_download_release() {
   # parameters
-  local REPO_URL_MARKER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS
-  REPO_URL_MARKER="${1}"
+  local REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS
+  REPO_IDENTIFIER="${1}"
   REPO_RELEASE_STORAGE="${2}"
   EXCLUDE_KEYWORDS="${3}"
 
   # configuration variables
   local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
-  op_prompt_checkpoint "Downloading release assets for ${NC}${GREEN}${REPO_URL_MARKER}${NC}"
+  op_prompt_checkpoint "Downloading release assets for ${NC}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
-  REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_URL_MARKER}/releases/latest"
+  REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/releases/latest"
 
   # download release data
   CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_RELEASE_DATA_URL'"
@@ -49,7 +46,7 @@ op_download_github_release() {
 
   # print downloading assets message
   # check if the corresponding release was already downloaded
-  RELEASE_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_URL_MARKER}/${RELEASE_TAG_NAME}"
+  RELEASE_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_IDENTIFIER}/${RELEASE_TAG_NAME}"
 
   # traverse release assets list
   local ASSET_INDEX ASSET_LENGTH
@@ -61,23 +58,23 @@ op_download_github_release() {
   op_prompt_info "Found ${GREEN}${ASSET_LENGTH}${NC} assets"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
     ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
-    op_download_github_release_asset "$RELEASE_STORAGE_PATH" "$ASSET_DATA" "$EXCLUDE_KEYWORDS"
+    op_github_download_release_asset "$RELEASE_STORAGE_PATH" "$ASSET_DATA" "$EXCLUDE_KEYWORDS"
   done
 }
 
 # currently only GitHub is supported, only tar.gz archive will be downloaded
-op_download_github_tag() {
+op_github_download_tag() {
   # parameters
-  local REPO_URL_MARKER REPO_RELEASE_STORAGE
-  REPO_URL_MARKER="${1}"
+  local REPO_IDENTIFIER REPO_RELEASE_STORAGE
+  REPO_IDENTIFIER="${1}"
   REPO_RELEASE_STORAGE="${2}"
 
   # configuration variables
   local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
-  op_prompt_checkpoint "Downloading tags assets for ${NC}${GREEN}${REPO_URL_MARKER}${NC}"
+  op_prompt_checkpoint "Downloading tags assets for ${NC}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
-  REPO_TAGS_DATA_URL="https://api.github.com/repos/${REPO_URL_MARKER}/tags"
+  REPO_TAGS_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/tags"
 
   # download release data
   CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_TAGS_DATA_URL'"
@@ -101,7 +98,7 @@ op_download_github_tag() {
 
   # print downloading assets message
   # check if the corresponding tag resource was already downloaded
-  TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_URL_MARKER}/${TAG_NAME}"
+  TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_IDENTIFIER}/${TAG_NAME}"
   mkdir -p "$TAG_STORAGE_PATH"
 
   # skip already downloaded assets
@@ -119,7 +116,7 @@ op_download_github_tag() {
   fi
 }
 
-op_download_github_release_asset() {
+op_github_download_release_asset() {
   # parameters
   local RELEASE_STORAGE_PATH ASSET_DATA EXCLUDE_KEYWORDS
   RELEASE_STORAGE_PATH="${1}"

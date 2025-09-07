@@ -1,22 +1,19 @@
 [
   {
-    "upstream": {
-      "name": "origin",
-      "repoUrl": "https://github.com/LockonS/git-mirror-synchronizer.git"
-    },
+    "repoUrl": "https://github.com/LockonS/git-mirror-synchronizer.git",
+    "identifier": "LockonS/git-mirror-synchronizer",
+    "catalog": "tool/automation",
     "repo": {
       "storagePath": "/opt/git/git-repo",
-      "pathPrefix": "tool",
-      "identifier": "LockonS/git-mirror-synchronizer"
+      "sync": "true"
     },
     "release": {
       "storagePath": "/opt/git/git-release",
-      "pathPrefix": "tool",
-      "identifier": "LockonS/git-mirror-synchronizer",
       "download": "true",
       "keptVersionNum": "3"
     },
     "tag": {
+      "storagePath": "/opt/git/git-tag",
       "download": "true",
       "keptVersionNum": "3"
     },

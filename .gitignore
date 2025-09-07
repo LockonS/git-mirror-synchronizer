@@ -2,6 +2,7 @@
 data/
 history/
 log/
+temp/
 *.log
 .idea/
 .vscode

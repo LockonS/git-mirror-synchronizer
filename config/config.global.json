@@ -9,6 +9,7 @@
     "keptVersionNum": "3"
   },
   "tag": {
+    "storagePath": "/opt/git/git-tag",
     "download": "true",
     "keptVersionNum": "3"
   }
