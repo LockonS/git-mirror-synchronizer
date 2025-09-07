@@ -230,17 +230,3 @@ op_push_remote_repo() {
     fi
   fi
 }
-
-# operation to extract release storage path config from repo
-op_extract_release_storage_path() {
-  local REPO_DATA REPO_RELEASE_STORAGE
-  REPO_DATA="${1}"
-
-  REPO_RELEASE_STORAGE=$(echo "$REPO_DATA" | jq ".releaseStoragePath" | tr -d '"')
-
-  # apply default release storage path if not configured
-  if [[ -z "$REPO_RELEASE_STORAGE" ]] || [[ "$REPO_RELEASE_STORAGE" == "null" ]]; then
-    REPO_RELEASE_STORAGE="$DEFAULT_RELEASE_STORAGE"
-  fi
-  echo "$REPO_RELEASE_STORAGE"
-}
