@@ -22,25 +22,27 @@ op_prompt_error() {
 
 op_run_cmd() {
   local CMD_STR=${*}
-  # print command on console
-  echo -e "\n${GREY}${CMD_STR}${NC}\n"
 
   if [[ "$DRY_RUN" != true ]]; then
     if ! zsh -c "$CMD_STR"; then
       op_prompt_error "Error: command execute failure"
       return 1
     fi
+  else
+    # print command on console
+    echo -e "\n${GREY}${CMD_STR}${NC}\n"
   fi
 }
 
 op_run_cmd_with_result() {
   local CMD_STR=${*}
-  # print command on console
-  echo -e "\n${GREY}${CMD_STR}${NC}\n"
 
   if [[ "$DRY_RUN" != true ]]; then
     SYNC_EXEC_STDOUT=$(zsh -c "$CMD_STR")
     export SYNC_EXEC_STDOUT
+  else
+    # print command on console
+    echo -e "\n${GREY}${CMD_STR}${NC}\n"
   fi
 }
 
@@ -89,13 +91,12 @@ op_handle_repo_data() {
   REPO_RUNTIME_CONFIG=$(op_load_repo_config "$REPO_DATA")
   REPO_URL=$(echo "$REPO_DATA" | jq ".repoUrl" | tr -d '"')
 
-  # TODO parse and start automation
   if [[ "$REPO_URL" == *"github.com"* ]]; then
     op_handle_github_repo "$REPO_RUNTIME_CONFIG"
   elif [[ "$REPO_URL" == *"gitlab.com"* ]]; then
-    echo "wip"
+    echo "gitlab module not supported yet"
   elif [[ "$REPO_URL" == *"gitee.com"* ]]; then
-    echo "wip"
+    echo "gitee module not supported yet"
   fi
 }
 
@@ -165,21 +166,22 @@ op_process_git_repo() {
 
   # traverse sync mirror remote repo list
   MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
-  local MIRROR_INDEX MIRROR_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_URL
+  local MIRROR_INDEX MIRROR_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_URL MIRROR_FORCE_PUSH
   for ((MIRROR_INDEX = 0; MIRROR_INDEX < MIRROR_LENGTH; MIRROR_INDEX++)); do
     # mirror configuration
-    MIRROR_REMOTE_REPO_NAME=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].repoName" | tr -d '"')
+    MIRROR_REMOTE_REPO_NAME=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].name" | tr -d '"')
     MIRROR_REMOTE_REPO_URL=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].repoUrl" | tr -d '"')
+    MIRROR_FORCE_PUSH=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].forcePush" | tr -d '"')
     if [[ -z $MIRROR_REMOTE_REPO_NAME ]] || [[ -z $MIRROR_REMOTE_REPO_URL ]]; then
       op_prompt_warn "Mirror repository configuration is not complete, abort this mirror"
       return 0
     fi
     op_set_remote_repo "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
-    op_push_remote_repo "$REPO_IDENTIFIER" "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME"
+    op_push_remote_repo "$REPO_IDENTIFIER" "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_FORCE_PUSH"
   done
 }
 
-# operation to setup remote repo
+# operation to setup remote repo if not set
 op_set_remote_repo() {
   local REPO_LOCAL_PATH MIRROR_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_URL
   REPO_LOCAL_PATH=${1}
@@ -193,32 +195,38 @@ op_set_remote_repo() {
     local CMD_ADD_REMOTE_REPO="git -C $REPO_LOCAL_PATH remote add $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL"
     op_run_cmd "$CMD_ADD_REMOTE_REPO"
   else
-    op_prompt_checkpoint "Remote repo already setup ${BOLD}${GREEN}${MIRROR_REMOTE_REPO_NAME}${NC}"
+    op_prompt_checkpoint "Remote repo ${BOLD}${BLUE}${MIRROR_REMOTE_REPO_NAME}${NC} already setup"
     echo -e "${MIRROR_REMOTE_REPO_NAME}: ${BOLD}${MIRROR_REMOTE_REPO_URL}${NC}"
   fi
 }
 
 # push to remote repo
 op_push_remote_repo() {
-  local REPO_IDENTIFIER REPO_LOCAL_PATH  MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME
+  local REPO_IDENTIFIER REPO_LOCAL_PATH MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME MIRROR_FORCE_PUSH
   REPO_IDENTIFIER="${1}"
   REPO_LOCAL_PATH="${2}"
   MIRROR_REMOTE_REPO_NAME="${3}"
+  MIRROR_FORCE_PUSH="${4}"
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
 
   # print repo sync message
   op_prompt_checkpoint "Sync project ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC} to remote repo ${BOLD}${BLUE}${MIRROR_REMOTE_REPO_NAME}${NC}"
-  echo -e "Project path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
+  # echo -e "Project path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
   echo -e "Tracking branch: ${BLUE}${REPO_BRANCH_NAME}${NC}"
 
   # assemble git command
   local CMD_GIT_RESET_HEADER="git -C $REPO_LOCAL_PATH reset --hard origin/$REPO_BRANCH_NAME"
   local CMD_GIT_PUSH_TO_MIRROR="git -C $REPO_LOCAL_PATH push $MIRROR_REMOTE_REPO_NAME"
+  local CMD_GIT_FORCE_PUSH_TO_MIRROR="git -C $REPO_LOCAL_PATH push $MIRROR_REMOTE_REPO_NAME --force"
 
   # run command
   op_run_cmd "$CMD_GIT_RESET_HEADER"
-  if [[ $SYNC_MIRROR == true ]]; then
-    op_run_cmd "$CMD_GIT_PUSH_TO_MIRROR"
+  if [[ $SYNC_MIRROR == "true" ]]; then
+    if [[ "$MIRROR_FORCE_PUSH" == "true" ]]; then
+      op_run_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"
+    else
+      op_run_cmd "$CMD_GIT_PUSH_TO_MIRROR"
+    fi
   fi
 }
 
