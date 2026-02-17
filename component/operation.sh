@@ -59,7 +59,7 @@ op_get_os_type() {
 }
 
 op_runtime_prepare() {
-  echo -e "\n--------------- $EXECUTE_TIME ---------------\n"
+  echo -e "\n--------------- $OPERATION_TIME ---------------\n"
   LOG_FILE="$LOG_PATH/sync.log"
   mkdir -p "$LOG_PATH"
   if [[ ! -f $LOG_FILE ]]; then
@@ -101,12 +101,13 @@ op_handle_repo_data() {
 }
 
 op_handle_github_repo() {
-  local REPO_RUNTIME_CONFIG REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD
+  local REPO_RUNTIME_CONFIG REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD REPO_IDENTIFIER
   REPO_RUNTIME_CONFIG="$*"
   REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
   REPO_SYNC=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.sync" | tr -d '"')
   REPO_RELEASE_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.download" | tr -d '"')
   REPO_TAG_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.download" | tr -d '"')
+  REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
 
   if [[ "$REPO_SYNC" == "true" ]]; then
     op_process_git_repo "$REPO_RUNTIME_CONFIG"
@@ -114,30 +115,44 @@ op_handle_github_repo() {
 
   if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
     RELEASE_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.storagePath" | tr -d '"')
+    if [[ -z "$RELEASE_STORAGE_PATH" || "$RELEASE_STORAGE_PATH" == "null" ]]; then
+      RELEASE_STORAGE_PATH="$DEFAULT_RELEASE_STORAGE_PATH"
+    fi
     RELEASE_EXCLUDE_KEYWORDS=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.excludeKeywords" | tr -d '"')
-    op_github_download_release "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS"
+    RELEASE_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.keptVersionNum" | tr -d '"')
+    op_github_download_release "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS" "$REPO_IDENTIFIER" "$RELEASE_KEPT_VERSION_NUM"
   fi
 
   if [[ "$REPO_TAG_DOWNLOAD" == "true" ]]; then
     TAG_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.storagePath" | tr -d '"')
-    op_github_download_tag "$REPO_URL" "$TAG_STORAGE_PATH"
+    if [[ -z "$TAG_STORAGE_PATH" || "$TAG_STORAGE_PATH" == "null" ]]; then
+      TAG_STORAGE_PATH="$DEFAULT_TAG_STORAGE_PATH"
+    fi
+    TAG_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.keptVersionNum" | tr -d '"')
+    op_github_download_tag "$REPO_URL" "$TAG_STORAGE_PATH" "$REPO_IDENTIFIER" "$TAG_KEPT_VERSION_NUM"
   fi
 }
 
 # initialize local repo
 op_process_git_repo() {
-  local REPO_RUNTIME_CONFIG REPO_NAME REPO_CATALOG REPO_STORAGE_PATH REPO_LOCAL_PATH
+  local REPO_RUNTIME_CONFIG REPO_NAME REPO_IDENTIFIER REPO_CATALOG REPO_STORAGE_PATH REPO_LOCAL_PATH
   REPO_RUNTIME_CONFIG="$*"
   REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
   REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
-  REPO_NAME=$(echo "$REPO_RUNTIME_CONFIG" | jq ".name" | tr -d '"')
+  REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
   REPO_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.storagePath" | tr -d '"')
+  if [[ -z "$REPO_STORAGE_PATH" || "$REPO_STORAGE_PATH" == "null" ]]; then
+    REPO_STORAGE_PATH="$DEFAULT_REPO_STORAGE_PATH"
+  fi
 
-  # extract repo name from url if not set
-  if [[ -z "$REPO_NAME" ]]; then
+  # use identifier if set, otherwise extract repo name from url
+  if [[ -n "$REPO_IDENTIFIER" ]] && [[ "$REPO_IDENTIFIER" != "null" ]]; then
+    REPO_NAME="$REPO_IDENTIFIER"
+  else
     REPO_NAME=$(basename "$REPO_URL" | sed 's/\.git$//')
   fi
-  # storage path will consists of catalog and marked by identifier
+  
+  # storage path consists of catalog and identifier/name
   REPO_LOCAL_PATH="${REPO_STORAGE_PATH}/${REPO_CATALOG}/${REPO_NAME}"
   if [[ $DRY_RUN != "true" ]]; then
     mkdir -p "$(dirname "$REPO_LOCAL_PATH")"
@@ -227,6 +242,33 @@ op_push_remote_repo() {
       op_run_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"
     else
       op_run_cmd "$CMD_GIT_PUSH_TO_MIRROR"
+    fi
+  fi
+}
+
+
+# cleanup old versions, keep only the newest N versions
+op_cleanup_old_versions() {
+  local STORAGE_PATH REPO_IDENTIFIER KEPT_VERSION_NUM TYPE
+  STORAGE_PATH="${1}"
+  REPO_IDENTIFIER="${2}"
+  KEPT_VERSION_NUM="${3}"
+  TYPE="${4:-version}"
+
+  # default to 3 if not set or invalid
+  if [[ -z "$KEPT_VERSION_NUM" || "$KEPT_VERSION_NUM" == "null" ]]; then
+    KEPT_VERSION_NUM=3
+  fi
+
+  if [[ -d "$STORAGE_PATH/$REPO_IDENTIFIER" ]]; then
+    local VERSION_DIRS
+    VERSION_DIRS=($(ls -1dt "$STORAGE_PATH/$REPO_IDENTIFIER"/*/ 2>/dev/null))
+    if (( ${#VERSION_DIRS[@]} > KEPT_VERSION_NUM )); then
+      op_prompt_info "Keeping ${KEPT_VERSION_NUM} newest ${TYPE}(s), removing $((${#VERSION_DIRS[@]} - KEPT_VERSION_NUM)) old ${TYPE}(s)"
+      for DIR in "${VERSION_DIRS[@]:KEPT_VERSION_NUM}"; do
+        op_prompt_info "Removing old ${TYPE}: $(basename "$DIR")"
+        rm -rf "$DIR"
+      done
     fi
   fi
 }

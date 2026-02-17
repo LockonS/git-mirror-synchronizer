@@ -22,14 +22,21 @@ op_github_extract_repo_identifier() {
   echo "$REPO_IDENTIFIER"
 }
 
-# currently only GitHub is supported
 op_github_download_release() {
   # parameters
-  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS
+  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   EXCLUDE_KEYWORDS="${3}"
-  REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
+  CUSTOM_IDENTIFIER="${4}"
+  KEPT_VERSION_NUM="${5}"
+  
+  # use custom identifier if provided, otherwise extract from URL
+  if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
+    REPO_IDENTIFIER="$CUSTOM_IDENTIFIER"
+  else
+    REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
+  fi
 
   # configuration variables
   local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
@@ -61,15 +68,26 @@ op_github_download_release() {
     ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
     op_github_download_release_asset "$RELEASE_STORAGE_PATH" "$ASSET_DATA" "$EXCLUDE_KEYWORDS"
   done
+
+  # cleanup old releases
+  op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "release"
 }
 
 # currently only GitHub is supported, only tar.gz archive will be downloaded
 op_github_download_tag() {
   # parameters
-  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER
+  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
-  REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
+  CUSTOM_IDENTIFIER="${3}"
+  KEPT_VERSION_NUM="${4}"
+  
+  # use custom identifier if provided, otherwise extract from URL
+  if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
+    REPO_IDENTIFIER="$CUSTOM_IDENTIFIER"
+  else
+    REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
+  fi
 
   # configuration variables
   local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
@@ -116,6 +134,9 @@ op_github_download_tag() {
   if [[ "$?" -ne 0 ]]; then
     rm "${TAG_STORAGE_PATH}/${ASSET_NAME}"
   fi
+
+  # cleanup old tags
+  op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "tag"
 }
 
 op_github_download_release_asset() {
