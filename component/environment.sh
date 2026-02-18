@@ -9,4 +9,4 @@ export DEFAULT_DATA_FILE="$DATA_PATH/repo.json"
 
 export OPERATION_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 export DRY_RUN="false"
-export LOG_LEVEL="debug"
+export LOG_LEVEL="info"
