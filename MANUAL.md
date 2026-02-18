@@ -204,8 +204,11 @@ This file defines the list of repositories to manage. It's a JSON array of repos
 
 **Optional:**
 - **identifier**: Custom identifier (e.g., "owner/repo-name"). If not specified, extracted from repoUrl
-- **catalog**: Category path for organizing repositories (e.g., "tools", "projects/web")
-  - Final path will be: `{storagePath}/{catalog}/{identifier or repo-name}`
+- **catalog**: Category path for organizing repositories, releases, and tags (e.g., "tools", "projects/web")
+  - Repository path: `{repo.storagePath}/{catalog}/{identifier or repo-name}`
+  - Release path: `{release.storagePath}/{catalog}/{identifier}/{version}`
+  - Tag path: `{tag.storagePath}/{catalog}/{identifier}/{tag-name}`
+  - If catalog is not set, paths fall back to: `{storagePath}/{identifier}` (backward compatible)
 - **repo**: Repository sync settings (inherits from global if not specified)
   - **storagePath**: Override storage location
   - **sync**: Enable/disable sync for this repo
@@ -570,7 +573,41 @@ Use the `catalog` field to organize repositories hierarchically:
     │   └── app1/
     └── mobile/
         └── app2/
+
+/opt/git/git-release/
+├── tools/
+│   ├── automation/
+│   │   └── tool1/
+│   │       └── v1.0.0/
+│   └── monitoring/
+│       └── tool2/
+│           └── v2.1.0/
+└── projects/
+    ├── web/
+    │   └── app1/
+    │       └── v3.0.0/
+    └── mobile/
+        └── app2/
+            └── v1.5.0/
+
+/opt/git/git-tag/
+├── tools/
+│   ├── automation/
+│   │   └── tool1/
+│   │       └── v1.0.0/
+│   └── monitoring/
+│       └── tool2/
+│           └── v2.1.0/
+└── projects/
+    ├── web/
+    │   └── app1/
+    │       └── v3.0.0/
+    └── mobile/
+        └── app2/
+            └── v1.5.0/
 ```
+
+**Note:** All three storage types (repositories, releases, and tags) now use the same catalog-based hierarchy for consistent organization.
 
 ### Exclude Keywords for Release Downloads
 
@@ -746,14 +783,18 @@ git-mirror-synchronizer/
 │   └── {catalog}/
 │       └── {identifier or name}/
 ├── git-release/                 # Downloaded release artifacts
-│   └── {identifier}/
-│       └── {version}/
-│           └── {assets}
+│   └── {catalog}/
+│       └── {identifier}/
+│           └── {version}/
+│               └── {assets}
 └── git-tag/                     # Downloaded tag archives
-    └── {identifier}/
-        └── {tag-name}/
-            └── {tag-name}.tar.gz
+    └── {catalog}/
+        └── {identifier}/
+            └── {tag-name}/
+                └── {tag-name}.tar.gz
 ```
+
+**Note:** Releases and tags now follow the same catalog-based organization as repositories. If a repository does not have a catalog defined, the old flat structure `{storagePath}/{identifier}/{version}` is used for backward compatibility.
 
 ---
 
@@ -819,5 +860,5 @@ For issues, questions, or feature requests:
 
 ---
 
-**Version:** 2.0  
-**Last Updated:** February 17, 2026
+**Version:** 2.1  
+**Last Updated:** February 19, 2026

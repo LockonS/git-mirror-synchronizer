@@ -29,12 +29,13 @@ op_github_extract_repo_identifier() {
 
 op_github_download_release() {
   # parameters
-  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM AUTH_REQUEST_HEADER
+  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   EXCLUDE_KEYWORDS="${3}"
   CUSTOM_IDENTIFIER="${4}"
   KEPT_VERSION_NUM="${5}"
+  REPO_CATALOG="${6}"
   
   # use custom identifier if provided, otherwise extract from URL
   if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
@@ -78,7 +79,12 @@ op_github_download_release() {
 
   # print downloading assets message
   # check if the corresponding release was already downloaded
-  RELEASE_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_IDENTIFIER}/${RELEASE_TAG_NAME}"
+  # include catalog in storage path
+  if [[ -n "$REPO_CATALOG" ]] && [[ "$REPO_CATALOG" != "null" ]]; then
+    RELEASE_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_CATALOG}/${REPO_IDENTIFIER}/${RELEASE_TAG_NAME}"
+  else
+    RELEASE_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_IDENTIFIER}/${RELEASE_TAG_NAME}"
+  fi
 
   # traverse release assets list
   local ASSET_INDEX ASSET_LENGTH
@@ -93,18 +99,23 @@ op_github_download_release() {
     op_github_download_release_asset "$RELEASE_STORAGE_PATH" "$ASSET_DATA" "$EXCLUDE_KEYWORDS"
   done
 
-  # cleanup old releases
-  op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "release"
+  # cleanup old releases (include catalog in base path)
+  if [[ -n "$REPO_CATALOG" ]] && [[ "$REPO_CATALOG" != "null" ]]; then
+    op_cleanup_old_versions "${REPO_RELEASE_STORAGE}/${REPO_CATALOG}" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "release"
+  else
+    op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "release"
+  fi
 }
 
 # currently only GitHub is supported, only tar.gz archive will be downloaded
 op_github_download_tag() {
   # parameters
-  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM AUTH_REQUEST_HEADER
+  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   CUSTOM_IDENTIFIER="${3}"
   KEPT_VERSION_NUM="${4}"
+  REPO_CATALOG="${5}"
   
   # use custom identifier if provided, otherwise extract from URL
   if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
@@ -161,7 +172,12 @@ op_github_download_tag() {
 
   # print downloading assets message
   # check if the corresponding tag resource was already downloaded
-  TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_IDENTIFIER}/${TAG_NAME}"
+  # include catalog in storage path
+  if [[ -n "$REPO_CATALOG" ]] && [[ "$REPO_CATALOG" != "null" ]]; then
+    TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_CATALOG}/${REPO_IDENTIFIER}/${TAG_NAME}"
+  else
+    TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_IDENTIFIER}/${TAG_NAME}"
+  fi
   mkdir -p "$TAG_STORAGE_PATH"
 
   # skip already downloaded assets
@@ -178,8 +194,12 @@ op_github_download_tag() {
     rm "${TAG_STORAGE_PATH}/${ASSET_NAME}"
   fi
 
-  # cleanup old tags
-  op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "tag"
+  # cleanup old tags (include catalog in base path)
+  if [[ -n "$REPO_CATALOG" ]] && [[ "$REPO_CATALOG" != "null" ]]; then
+    op_cleanup_old_versions "${REPO_RELEASE_STORAGE}/${REPO_CATALOG}" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "tag"
+  else
+    op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "tag"
+  fi
 }
 
 op_github_download_release_asset() {
