@@ -10,8 +10,3 @@ export DEFAULT_DATA_FILE="$DATA_PATH/repo.json"
 export OPERATION_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 export DRY_RUN="false"
 export LOG_LEVEL="debug"
-
-# TODO this might not be required, consider to remove it
-export DEFAULT_REPO_STORAGE_PATH="/opt/git/git-repo"
-export DEFAULT_TAG_STORAGE_PATH="/opt/git/git-tag"
-export DEFAULT_RELEASE_STORAGE_PATH="/opt/git/git-release"

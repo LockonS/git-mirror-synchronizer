@@ -45,6 +45,7 @@ op_github_download_release() {
 
   # configuration variables
   local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
+  echo -e ""
   op_prompt_checkpoint "Downloading release assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
@@ -57,6 +58,11 @@ op_github_download_release() {
 
   # download release data
   CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY $AUTH_REQUEST_HEADER -L -s '$REPO_RELEASE_DATA_URL'"
+  
+  if [[ "$LOG_LEVEL" == "debug" ]]; then
+    op_prompt_debug "${CMD_RETRIEVE_DATA}"
+  fi
+  
   REPO_RELEASE_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
 
   # Check for error message in response (e.g., rate limit or not found)
@@ -109,14 +115,11 @@ op_github_download_tag() {
 
   # configuration variables
   local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
+  echo -e ""
   op_prompt_checkpoint "Downloading tags assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
   REPO_TAGS_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/tags"
-
-  if [[ "$LOG_LEVEL" == "debug" ]]; then
-    op_prompt_debug "GitHub tags data URL: ${YELLOW}${REPO_TAGS_DATA_URL}${NC}"
-  fi
 
   # assemble auth header if access token is available
   if [[ -n "$GITHUB_ACCESS_TOKEN" ]];then

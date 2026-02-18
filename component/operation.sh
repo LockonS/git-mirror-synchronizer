@@ -59,7 +59,7 @@ op_get_os_type() {
 }
 
 op_runtime_prepare() {
-  echo -e "\n--------------- $OPERATION_TIME ---------------\n"
+  echo -e "\n--------------------- $OPERATION_TIME ---------------------\n"
   mkdir -p "$TEMP_PATH"
   mkdir -p "$LOG_PATH"
 
@@ -128,9 +128,6 @@ op_handle_github_repo() {
 
   if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
     RELEASE_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.storagePath" | tr -d '"')
-    if [[ -z "$RELEASE_STORAGE_PATH" || "$RELEASE_STORAGE_PATH" == "null" ]]; then
-      RELEASE_STORAGE_PATH="$DEFAULT_RELEASE_STORAGE_PATH"
-    fi
     RELEASE_EXCLUDE_KEYWORDS=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.excludeKeywords" | tr -d '"')
     RELEASE_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.keptVersionNum" | tr -d '"')
     op_github_download_release "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS" "$REPO_IDENTIFIER" "$RELEASE_KEPT_VERSION_NUM"
@@ -138,9 +135,6 @@ op_handle_github_repo() {
 
   if [[ "$REPO_TAG_DOWNLOAD" == "true" ]]; then
     TAG_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.storagePath" | tr -d '"')
-    if [[ -z "$TAG_STORAGE_PATH" || "$TAG_STORAGE_PATH" == "null" ]]; then
-      TAG_STORAGE_PATH="$DEFAULT_TAG_STORAGE_PATH"
-    fi
     TAG_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.keptVersionNum" | tr -d '"')
     op_github_download_tag "$REPO_URL" "$TAG_STORAGE_PATH" "$REPO_IDENTIFIER" "$TAG_KEPT_VERSION_NUM"
   fi
@@ -154,9 +148,6 @@ op_process_git_repo() {
   REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
   REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
   REPO_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.storagePath" | tr -d '"')
-  if [[ -z "$REPO_STORAGE_PATH" || "$REPO_STORAGE_PATH" == "null" ]]; then
-    REPO_STORAGE_PATH="$DEFAULT_REPO_STORAGE_PATH"
-  fi
 
   # use identifier if set, otherwise extract repo name from url
   if [[ -n "$REPO_IDENTIFIER" ]] && [[ "$REPO_IDENTIFIER" != "null" ]]; then
@@ -174,7 +165,8 @@ op_process_git_repo() {
   fi
 
   # print repo init message
-  op_prompt_checkpoint "Initialize project ${BOLD}${GREEN}${REPO_NAME}${NC} to local path ${BOLD}${BLUE}${REPO_LOCAL_PATH}${NC}"
+  op_prompt_checkpoint "Process repo ${BOLD}${GREEN}${REPO_NAME}${NC}"
+  op_prompt_info "Local path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
 
   # assemble git command
   local CMD_GIT_CLONE_REPO="git clone $REPO_URL $REPO_LOCAL_PATH"
@@ -217,6 +209,7 @@ op_set_remote_repo() {
   MIRROR_REMOTE_REPO_NAME=${2}
   MIRROR_REMOTE_REPO_URL=${3}
 
+  echo -e ""
   # check if remote repo has been configured already
   if ! git -C "$REPO_LOCAL_PATH" remote | grep -q "^$MIRROR_REMOTE_REPO_NAME$"; then
     op_prompt_checkpoint "Setup remote repo ${BOLD}${GREEN}${MIRROR_REMOTE_REPO_NAME}${NC}"
@@ -239,7 +232,8 @@ op_push_remote_repo() {
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
 
   # print repo sync message
-  op_prompt_checkpoint "Sync project ${BOLD}${GREEN}${REPO_NAME}${NC} to remote repo ${BOLD}${BLUE}${MIRROR_REMOTE_REPO_NAME}${NC}"
+  echo -e ""
+  op_prompt_checkpoint "Sync repo ${BOLD}${GREEN}${REPO_NAME}${NC} to remote repo ${BOLD}${BLUE}${MIRROR_REMOTE_REPO_NAME}${NC}"
   # echo -e "Project path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
   echo -e "Tracking branch: ${BLUE}${REPO_BRANCH_NAME}${NC}"
 

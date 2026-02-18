@@ -27,7 +27,6 @@ sync_tool_manual() {
   echo "       -h,--help,help             Show manual page"
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/config.json"
   echo "       -d,--data-file   file      Specify input data file, default to path-to-script/data/repo.json"
-  echo "       -m,--mode        mode      Specify execute mode [sync | download], default is 'sync' mode"
   echo "       --dry-run                  Enable dry run mode (no actual changes)"
 }
 
@@ -35,7 +34,6 @@ sync_tool_manual() {
 sync_tool_entry() {
   local RUNTIME_CONFIG_FILE="$DEFAULT_CONFIG_FILE"
   local RUNTIME_DATA_FILE="$DEFAULT_DATA_FILE"
-  local TARGET_REPO
 
   while [ $# -gt 0 ]; do
     case ${1} in
@@ -50,11 +48,6 @@ sync_tool_entry() {
         ;;
       '-d' | '--data-file')
         RUNTIME_DATA_FILE=${2}
-        shift
-        shift
-        ;;
-      '-m' | '--mode')
-        TARGET_EXEC_MODE=${2}
         shift
         shift
         ;;
@@ -82,7 +75,7 @@ sync_tool_entry() {
   for ((REPO_INDEX = 0; REPO_INDEX < REPO_LENGTH; REPO_INDEX++)); do
     REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[$REPO_INDEX]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
-    echo -e "\n--------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------\n"
+    echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
     op_handle_repo_data "$REPO_DATA"
   done
 }
