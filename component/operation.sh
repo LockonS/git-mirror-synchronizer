@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 op_prompt_checkpoint() {
-  echo -e "${BLUE}==>${NC} ${BOLD}${WHITE}${1}${NC}"
+  echo -e "${BLUE}==>${NC} ${WHITE}${1}${NC}"
 }
 
 op_prompt_debug() {

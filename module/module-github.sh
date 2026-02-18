@@ -8,6 +8,11 @@ op_load_github_access_token() {
   if [[ -f "$GITHUB_ACCESS_TOKEN_FILE" ]]; then
     GITHUB_ACCESS_TOKEN=$(cat "$GITHUB_ACCESS_TOKEN_FILE")
   fi
+
+  if [[ -z "$GITHUB_ACCESS_TOKEN" ]]; then
+    op_prompt_warn "GitHub access token file not found or empty. You may encounter rate limit issues."
+    sleep 2
+  fi
 }
 op_load_github_access_token
 
@@ -24,7 +29,7 @@ op_github_extract_repo_identifier() {
 
 op_github_download_release() {
   # parameters
-  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM
+  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM AUTH_REQUEST_HEADER
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   EXCLUDE_KEYWORDS="${3}"
@@ -40,14 +45,27 @@ op_github_download_release() {
 
   # configuration variables
   local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
-  op_prompt_checkpoint "Downloading release assets for ${NC}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint "Downloading release assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/releases/latest"
 
+  # assemble auth header if access token is available
+  if [[ -n "$GITHUB_ACCESS_TOKEN" ]];then
+    AUTH_REQUEST_HEADER="-H 'Authorization: token $GITHUB_ACCESS_TOKEN'"
+  fi
+
   # download release data
-  CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_RELEASE_DATA_URL'"
+  CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY $AUTH_REQUEST_HEADER -L -s '$REPO_RELEASE_DATA_URL'"
   REPO_RELEASE_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
+
+  # Check for error message in response (e.g., rate limit or not found)
+  local RESPONSE_MESSAGE
+  RESPONSE_MESSAGE=$(printf "%s" "$REPO_RELEASE_DATA" | jq -r 'select(type=="object" and has("message")) | .message')
+  if [[ -n "$RESPONSE_MESSAGE" && "$RESPONSE_MESSAGE" != "null" ]]; then
+    op_prompt_warn "GitHub API response: ${BOLD}${RESPONSE_MESSAGE}${NC}"
+    return 1
+  fi
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
@@ -76,7 +94,7 @@ op_github_download_release() {
 # currently only GitHub is supported, only tar.gz archive will be downloaded
 op_github_download_tag() {
   # parameters
-  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM
+  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM AUTH_REQUEST_HEADER
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   CUSTOM_IDENTIFIER="${3}"
@@ -91,14 +109,36 @@ op_github_download_tag() {
 
   # configuration variables
   local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
-  op_prompt_checkpoint "Downloading tags assets for ${NC}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint "Downloading tags assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
   REPO_TAGS_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/tags"
 
+  if [[ "$LOG_LEVEL" == "debug" ]]; then
+    op_prompt_debug "GitHub tags data URL: ${YELLOW}${REPO_TAGS_DATA_URL}${NC}"
+  fi
+
+  # assemble auth header if access token is available
+  if [[ -n "$GITHUB_ACCESS_TOKEN" ]];then
+    AUTH_REQUEST_HEADER="-H 'Authorization: token $GITHUB_ACCESS_TOKEN'"
+  fi
+
   # download release data
-  CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY -H 'Authorization: token $GITHUB_ACCESS_TOKEN' -L -s '$REPO_TAGS_DATA_URL'"
+  CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY $AUTH_REQUEST_HEADER -L -s '$REPO_TAGS_DATA_URL'"
+  
+  if [[ "$LOG_LEVEL" == "debug" ]]; then
+    op_prompt_debug "${CMD_RETRIEVE_DATA}"
+  fi
+  
   REPO_TAGS_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
+
+  # Check for error message in response (e.g., rate limit or not found)
+  local RESPONSE_MESSAGE
+  RESPONSE_MESSAGE=$(printf "%s" "$REPO_TAGS_DATA" | jq -r 'select(type=="object" and has("message")) | .message')
+  if [[ -n "$RESPONSE_MESSAGE" && "$RESPONSE_MESSAGE" != "null" ]]; then
+    op_prompt_warn "GitHub API response: ${BOLD}${RESPONSE_MESSAGE}${NC}"
+    return 1
+  fi
 
   # traverse release assets list
   local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME CMD_DOWNLOAD_ASSET
