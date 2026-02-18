@@ -142,7 +142,7 @@ This file contains the default settings for all repositories:
 
 ### 2. Custom Global Configuration
 
-File: `data/config.json` (optional)
+File: `data/config.json` (automatically generated based on default global config)
 
 Create this file to override global defaults for your environment:
 

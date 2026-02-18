@@ -67,6 +67,12 @@ op_runtime_prepare() {
   if [[ ! -f $LOG_FILE ]]; then
     touch "$LOG_FILE"
   fi
+
+  if [[ ! -f "$DEFAULT_CONFIG_FILE" ]]; then
+    op_prompt_checkpoint "Default config file not found, creating from global config template" 
+    op_prompt_debug "Global config file: ${GREEN}${GLOBAL_CONFIG_FILE}${NC}"
+    cp "$GLOBAL_CONFIG_FILE" "$DEFAULT_CONFIG_FILE"
+  fi
 }
 
 # load setting from global config file and in-line parameter
@@ -76,9 +82,7 @@ op_load_runtime_config() {
   GLOBAL_RUNTIME_CONFIG=$(jq -s '.[0] * .[1]' "$GLOBAL_CONFIG_FILE" "$RUNTIME_CONFIG_FILE")
 
   if [[ "$LOG_LEVEL" == "debug" ]]; then
-    op_prompt_info "Loading runtime config from file '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}'"
-    echo -e "Global config file: ${YELLOW}${GLOBAL_CONFIG_FILE}${NC}"
-    echo -e "Runtime config file: ${YELLOW}${RUNTIME_CONFIG_FILE}${NC}"
+    op_prompt_debug "Loading runtime config: '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}'"
   fi
 
   echo "$GLOBAL_RUNTIME_CONFIG" >"${TEMP_PATH}/global.temp.json"
