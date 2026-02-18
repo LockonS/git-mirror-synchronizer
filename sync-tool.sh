@@ -25,7 +25,7 @@ source "$MODULE_PATH/module-gitee.sh"
 sync_tool_manual() {
   echo "usage: mirror-sync.sh "
   echo "       -h,--help,help             Show manual page"
-  echo "       -f,--config-file file      Specify input config file, default to path-to-script/config/config.global.json"
+  echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/config.json"
   echo "       -d,--data-file   file      Specify input data file, default to path-to-script/data/repo.json"
   echo "       -m,--mode        mode      Specify execute mode [sync | download], default is 'sync' mode"
   echo "       --dry-run                  Enable dry run mode (no actual changes)"
@@ -86,7 +86,6 @@ sync_tool_entry() {
     op_handle_repo_data "$REPO_DATA"
   done
 }
-
 
 op_runtime_prepare
 sync_tool_entry "$@"

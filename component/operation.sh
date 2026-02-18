@@ -60,8 +60,10 @@ op_get_os_type() {
 
 op_runtime_prepare() {
   echo -e "\n--------------- $OPERATION_TIME ---------------\n"
-  LOG_FILE="$LOG_PATH/sync.log"
+  mkdir -p "$TEMP_PATH"
   mkdir -p "$LOG_PATH"
+
+  LOG_FILE="$LOG_PATH/sync.log"
   if [[ ! -f $LOG_FILE ]]; then
     touch "$LOG_FILE"
   fi
@@ -72,6 +74,13 @@ op_load_runtime_config() {
   local RUNTIME_CONFIG_FILE GLOBAL_RUNTIME_CONFIG
   RUNTIME_CONFIG_FILE="${1}"
   GLOBAL_RUNTIME_CONFIG=$(jq -s '.[0] * .[1]' "$GLOBAL_CONFIG_FILE" "$RUNTIME_CONFIG_FILE")
+
+  if [[ "$LOG_LEVEL" == "debug" ]]; then
+    op_prompt_info "Loading runtime config from file '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}'"
+    echo -e "Global config file: ${YELLOW}${GLOBAL_CONFIG_FILE}${NC}"
+    echo -e "Runtime config file: ${YELLOW}${RUNTIME_CONFIG_FILE}${NC}"
+  fi
+
   echo "$GLOBAL_RUNTIME_CONFIG" >"${TEMP_PATH}/global.temp.json"
 }
 
