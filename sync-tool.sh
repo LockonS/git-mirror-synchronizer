@@ -27,6 +27,7 @@ sync_tool_manual() {
   echo "       -h,--help,help             Show manual page"
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/config.json"
   echo "       -d,--data-file   file      Specify input data file, default to path-to-script/data/repo.json"
+  echo "       -m,--mode        mode      Execution mode: all(default), update, sync, release, tag"
   echo "       --dry-run                  Enable dry run mode (no actual changes)"
 }
 
@@ -34,6 +35,7 @@ sync_tool_manual() {
 sync_tool_entry() {
   local RUNTIME_CONFIG_FILE="$DEFAULT_CONFIG_FILE"
   local RUNTIME_DATA_FILE="$DEFAULT_DATA_FILE"
+  local EXECUTION_MODE="all"
 
   while [ $# -gt 0 ]; do
     case ${1} in
@@ -51,6 +53,11 @@ sync_tool_entry() {
         shift
         shift
         ;;
+      '-m' | '--mode')
+        EXECUTION_MODE=${2}
+        shift
+        shift
+        ;;
       '--dry-run')
         DRY_RUN="true"
         shift
@@ -59,12 +66,27 @@ sync_tool_entry() {
     esac
   done
 
+  # validate execution mode
+  case "$EXECUTION_MODE" in
+    'all' | 'update' | 'sync' | 'release' | 'tag')
+      # valid mode
+      ;;
+    *)
+      echo "${RED}Invalid execution mode: ${EXECUTION_MODE}${NC}"
+      echo "Valid modes: all, update, sync, release, tag"
+      return 1
+      ;;
+  esac
+
   # check if config file exist
   [[ ! -f $RUNTIME_CONFIG_FILE ]] && echo "Config file '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}' does not exist" && return 1
   [[ ! -f $RUNTIME_DATA_FILE ]] && echo "Data file '${YELLOW}${RUNTIME_DATA_FILE}${NC}' does not exist" && return 1
 
   # load runtime config
   op_load_runtime_config "$RUNTIME_CONFIG_FILE"
+
+  # apply execution mode overrides
+  op_apply_execution_mode "$EXECUTION_MODE"
 
   # load runtime data
   local RUNTIME_REPO_DATA_CONTENT REPO_LENGTH REPO_INDEX REPO_DATA PROGRESS_INDEX

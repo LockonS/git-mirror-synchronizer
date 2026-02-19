@@ -28,7 +28,7 @@ op_github_extract_repo_identifier() {
 
 # check GitHub API response for errors
 # Parameters: JSON_DATA, ARTIFACT_TYPE ("release" or "tags")
-# Returns: 0 if no error or "Not Found", 1 for other errors
+# Returns: 0 if no error, 1 for errors, 2 for "Not Found" (caller should exit gracefully)
 op_github_check_api_response() {
   local JSON_DATA ARTIFACT_TYPE RESPONSE_MESSAGE
   JSON_DATA="${1}"
@@ -39,7 +39,7 @@ op_github_check_api_response() {
     case "$RESPONSE_MESSAGE" in
       *"Not Found"*)
         op_prompt_info "No ${ARTIFACT_TYPE} artifact found"
-        return 0
+        return 2
         ;;
       *)
         op_prompt_warn "GitHub API response: ${BOLD}${RESPONSE_MESSAGE}${NC}"
@@ -50,8 +50,30 @@ op_github_check_api_response() {
   return 0
 }
 
+# validate GitHub API response and handle status codes
+# Parameters: JSON_DATA, ARTIFACT_TYPE ("release" or "tags")
+# Returns: 0 for success (continue), 200 for "Not Found" (parent should return 0), other codes for errors
+op_github_validate_response() {
+  local JSON_DATA ARTIFACT_TYPE
+  JSON_DATA="${1}"
+  ARTIFACT_TYPE="${2}"
+  
+  op_github_check_api_response "$JSON_DATA" "$ARTIFACT_TYPE"
+  local API_STATUS=$?
+  
+  if [[ $API_STATUS -eq 2 ]]; then
+    # Not Found - parent should return 0 gracefully
+    return 200
+  elif [[ $API_STATUS -ne 0 ]]; then
+    # Error - parent should return this code
+    return $API_STATUS
+  fi
+  
+  # Success - continue processing
+  return 0
+}
+
 op_github_download_release() {
-  # parameters
   local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
@@ -83,14 +105,15 @@ op_github_download_release() {
   # download release data
   CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY $AUTH_REQUEST_HEADER -L -s '$REPO_RELEASE_DATA_URL'"
   
-  if [[ "$LOG_LEVEL" == "debug" ]]; then
-    op_prompt_debug "${CMD_RETRIEVE_DATA}"
-  fi
+  op_prompt_debug "${CMD_RETRIEVE_DATA}"
   
   REPO_RELEASE_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
 
   # Check for error message in response (e.g., rate limit or not found)
-  op_github_check_api_response "$REPO_RELEASE_DATA" "release" || return $?
+  op_github_validate_response "$REPO_RELEASE_DATA" "release" || {
+    local RET=$?
+    [[ $RET -eq 200 ]] && return 0 || return $RET
+  }
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
@@ -159,14 +182,15 @@ op_github_download_tag() {
   # download release data
   CMD_RETRIEVE_DATA="curl -X GET --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY $AUTH_REQUEST_HEADER -L -s '$REPO_TAGS_DATA_URL'"
   
-  if [[ "$LOG_LEVEL" == "debug" ]]; then
-    op_prompt_debug "${CMD_RETRIEVE_DATA}"
-  fi
+  op_prompt_debug "${CMD_RETRIEVE_DATA}"
   
   REPO_TAGS_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
 
   # Check for error message in response (e.g., rate limit or not found)
-  op_github_check_api_response "$REPO_TAGS_DATA" "tags" || return $?
+  op_github_validate_response "$REPO_TAGS_DATA" "tags" || {
+    local RET=$?
+    [[ $RET -eq 200 ]] && return 0 || return $RET
+  }
 
   # traverse release assets list
   local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME CMD_DOWNLOAD_ASSET
@@ -236,7 +260,7 @@ op_github_download_release_asset() {
     IFS=',' read -A EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
     for KEYWORD in "${EXCLUDE_KEYWORD_LIST[@]}"; do
       if [[ "$ASSET_NAME" == *$KEYWORD* ]]; then
-        op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} >> Skipped: excluded by keyword '${YELLOW}${KEYWORD}${NC}'"
+        op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} >> Skipped: excluded by keyword ${YELLOW}${KEYWORD}${NC}"
         return 0
       fi
     done
@@ -244,7 +268,7 @@ op_github_download_release_asset() {
 
   # skip already downloaded assets
   if [[ -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}" ]]; then
-    op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} >> Skipped: already downloaded"
+    op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} >> Skipped: already ${YELLOW}downloaded${NC}"
     return 0
   fi
 

@@ -1,29 +1,44 @@
 #!/usr/bin/env zsh
 
+op_log_to_file() {
+  if [[ -n "$LOG_FILE" ]]; then
+    echo -e "${1}" | sed $'s/\x1b\[[0-9;]*m//g' >> "$LOG_FILE"
+  fi
+}
+
 op_prompt_checkpoint() {
   echo -e "${BLUE}==>${NC} ${WHITE}${1}${NC}"
+  op_log_to_file "==> ${1}"
 }
 
 op_prompt_debug() {
+  if [[ "$LOG_LEVEL" != "debug" ]]; then
+    return 0
+  fi
   echo -e "${GREY}${1}${NC}"
+  op_log_to_file "[DEBUG] ${1}"
 }
 
 op_prompt_info() {
   echo -e "${WHITE}${1}${NC}"
+  op_log_to_file "${1}"
 }
 
 op_prompt_warn() {
   echo -e "${BOLD}${YELLOW}${1}${NC}"
+  op_log_to_file "[WARN] ${1}"
 }
 
 op_prompt_error() {
   echo -e "${BOLD}${RED}${1}${NC}"
+  op_log_to_file "[ERROR] ${1}"
 }
 
 op_run_cmd() {
   local CMD_STR=${*}
 
   if [[ "$DRY_RUN" != true ]]; then
+    op_log_to_file "[CMD] ${CMD_STR}"
     if ! zsh -c "$CMD_STR"; then
       op_prompt_error "Error: command execute failure"
       return 1
@@ -31,6 +46,7 @@ op_run_cmd() {
   else
     # print command on console
     echo -e "\n${GREY}${CMD_STR}${NC}\n"
+    op_log_to_file "[DRY-RUN] ${CMD_STR}"
   fi
 }
 
@@ -63,7 +79,8 @@ op_runtime_prepare() {
   mkdir -p "$TEMP_PATH"
   mkdir -p "$LOG_PATH"
 
-  LOG_FILE="$LOG_PATH/sync.log"
+  LOG_TIMESTAMP=$(date '+%Y%m%d%H%M%S')
+  LOG_FILE="$LOG_PATH/sync-${LOG_TIMESTAMP}.log"
   if [[ ! -f $LOG_FILE ]]; then
     touch "$LOG_FILE"
   fi
@@ -86,6 +103,45 @@ op_load_runtime_config() {
   fi
 
   echo "$GLOBAL_RUNTIME_CONFIG" >"${TEMP_PATH}/global.temp.json"
+}
+
+# apply execution mode to override global configuration
+op_apply_execution_mode() {
+  local EXECUTION_MODE="${1}"
+  local MODIFIED_CONFIG
+  
+  case "$EXECUTION_MODE" in
+    'all')
+      # no changes needed, use original config
+      op_prompt_debug "Execution mode: all (sync, release, tag)"
+      ;;
+    'update')
+      # only update repos, no mirror sync, no downloads
+      op_prompt_checkpoint "Execution mode: ${BOLD}${GREEN}update${NC} (clone/pull repos only)"
+      MODIFIED_CONFIG=$(cat "${TEMP_PATH}/global.temp.json" | jq '.repo.sync = "true" | .release.download = "false" | .tag.download = "false"')
+      echo "$MODIFIED_CONFIG" >"${TEMP_PATH}/global.temp.json"
+      # enable repo sync but skip mirror operations
+      export SKIP_MIRROR_SYNC="true"
+      ;;
+    'sync')
+      # update repos and sync to mirrors, no downloads
+      op_prompt_checkpoint "Execution mode: ${BOLD}${GREEN}sync${NC} (clone/pull and sync to mirrors)"
+      MODIFIED_CONFIG=$(cat "${TEMP_PATH}/global.temp.json" | jq '.repo.sync = "true" | .release.download = "false" | .tag.download = "false"')
+      echo "$MODIFIED_CONFIG" >"${TEMP_PATH}/global.temp.json"
+      ;;
+    'release')
+      # only download releases
+      op_prompt_checkpoint "Execution mode: ${BOLD}${GREEN}release${NC} (download releases only)"
+      MODIFIED_CONFIG=$(cat "${TEMP_PATH}/global.temp.json" | jq '.repo.sync = "false" | .release.download = "true" | .tag.download = "false"')
+      echo "$MODIFIED_CONFIG" >"${TEMP_PATH}/global.temp.json"
+      ;;
+    'tag')
+      # only download tags
+      op_prompt_checkpoint "Execution mode: ${BOLD}${GREEN}tag${NC} (download tags only)"
+      MODIFIED_CONFIG=$(cat "${TEMP_PATH}/global.temp.json" | jq '.repo.sync = "false" | .release.download = "false" | .tag.download = "true"')
+      echo "$MODIFIED_CONFIG" >"${TEMP_PATH}/global.temp.json"
+      ;;
+  esac
 }
 
 # load repo config, inherit from global config and overwrite the custom repo config
@@ -140,7 +196,8 @@ op_process_git_repo() {
   # print repo init message
   op_prompt_checkpoint "Process repo ${BOLD}${GREEN}${REPO_NAME}${NC}"
   op_prompt_info "Remote URL: ${BOLD}${REPO_URL}${NC}"
-  op_prompt_info "Local path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
+  op_prompt_info "Storage Path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
+  echo -e ""
 
   # assemble git command
   local CMD_GIT_CLONE_REPO="git clone $REPO_URL $REPO_LOCAL_PATH"
@@ -159,18 +216,23 @@ op_process_git_repo() {
     op_run_cmd "$CMD_GIT_CLONE_REPO"
   fi
 
-  # traverse sync mirror remote repo list
-  # Check if mirror field exists and is not null
-  MIRROR_EXISTS=$(echo "$REPO_DATA" | jq 'has("mirror")')
-  if [[ "$MIRROR_EXISTS" != "true" ]]; then
-    op_prompt_debug "No mirror configuration found, skipping mirror sync"
+  # Check if mirror sync is disabled by execution mode
+  if [[ "$SKIP_MIRROR_SYNC" == "true" ]]; then
     return 0
   fi
   
+  # Check if mirror field exists and is not null
+  MIRROR_EXISTS=$(echo "$REPO_DATA" | jq 'has("mirror")')
+  if [[ "$MIRROR_EXISTS" != "true" ]]; then
+    op_prompt_info "No mirror configuration found, skipping mirror sync"
+    return 0
+  fi
+  
+  # Traverse sync mirror remote repo list
   MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
   # Check if mirror is null or empty
   if [[ "$MIRROR_LENGTH" == "null" ]] || [[ "$MIRROR_LENGTH" == "0" ]] || [[ -z "$MIRROR_LENGTH" ]]; then
-    op_prompt_debug "Mirror configuration is empty, skipping mirror sync"
+    op_prompt_info "Mirror configuration is empty, skipping mirror sync"
     return 0
   fi
   
@@ -196,7 +258,6 @@ op_set_remote_repo() {
   MIRROR_REMOTE_REPO_NAME=${2}
   MIRROR_REMOTE_REPO_URL=${3}
 
-  echo -e ""
   # check if remote repo has been configured already
   if ! git -C "$REPO_LOCAL_PATH" remote | grep -q "^$MIRROR_REMOTE_REPO_NAME$"; then
     op_prompt_checkpoint "Setup remote repo ${BOLD}${GREEN}${MIRROR_REMOTE_REPO_NAME}${NC}"
@@ -219,7 +280,6 @@ op_push_remote_repo() {
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
 
   # print repo sync message
-  echo -e ""
   op_prompt_checkpoint "Sync repo ${BOLD}${GREEN}${REPO_NAME}${NC} to remote repo ${BOLD}${BLUE}${MIRROR_REMOTE_REPO_NAME}${NC}"
   # echo -e "Project path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
   echo -e "Tracking branch: ${BLUE}${REPO_BRANCH_NAME}${NC}"
@@ -243,6 +303,8 @@ op_push_remote_repo() {
 
 # cleanup old versions, keep only the newest N versions
 op_cleanup_old_versions() {
+  op_prompt_checkpoint "Cleanup old ${TYPE}(s), keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}(s)"
+
   local STORAGE_PATH REPO_IDENTIFIER KEPT_VERSION_NUM TYPE
   STORAGE_PATH="${1}"
   REPO_IDENTIFIER="${2}"
