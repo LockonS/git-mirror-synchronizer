@@ -6,11 +6,11 @@
   "release": {
     "storagePath": "/opt/git/git-release",
     "download": "true",
-    "keptVersionNum": "3"
+    "keptVersionNum": "5"
   },
   "tag": {
     "storagePath": "/opt/git/git-tag",
     "download": "true",
-    "keptVersionNum": "3"
+    "keptVersionNum": "5"
   }
 }

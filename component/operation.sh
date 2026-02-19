@@ -314,7 +314,7 @@ op_cleanup_old_versions() {
 
   # default to 3 if not set or invalid
   if [[ -z "$KEPT_VERSION_NUM" || "$KEPT_VERSION_NUM" == "null" ]]; then
-    KEPT_VERSION_NUM=3
+    KEPT_VERSION_NUM=5
   fi
 
   if [[ -d "$STORAGE_PATH/$REPO_IDENTIFIER" ]]; then
