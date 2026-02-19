@@ -221,8 +221,8 @@ op_github_download_release_asset() {
   if [[ -n "$EXCLUDE_KEYWORDS" ]]; then
     IFS=',' read -A EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
     for KEYWORD in "${EXCLUDE_KEYWORD_LIST[@]}"; do
-      if [[ "$ASSET_NAME" =~ $KEYWORD ]]; then
-        op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} is configured to be ignored"
+      if [[ "$ASSET_NAME" == *$KEYWORD* ]]; then
+        op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} state: ${BOLD}${YELLOW}Ignored [exclude: ${KEYWORD}]${NC}"
         return 0
       fi
     done
@@ -230,7 +230,7 @@ op_github_download_release_asset() {
 
   # skip already downloaded assets
   if [[ -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}" ]]; then
-    op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} already downloaded"
+    op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} state: ${BOLD}${YELLOW}Downloaded${NC}"
     return 0
   fi
 

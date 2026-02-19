@@ -167,6 +167,7 @@ op_process_git_repo() {
 
   # print repo init message
   op_prompt_checkpoint "Process repo ${BOLD}${GREEN}${REPO_NAME}${NC}"
+  op_prompt_info "Remote URL: ${BOLD}${REPO_URL}${NC}"
   op_prompt_info "Local path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
 
   # assemble git command
@@ -187,7 +188,20 @@ op_process_git_repo() {
   fi
 
   # traverse sync mirror remote repo list
+  # Check if mirror field exists and is not null
+  MIRROR_EXISTS=$(echo "$REPO_DATA" | jq 'has("mirror")')
+  if [[ "$MIRROR_EXISTS" != "true" ]]; then
+    op_prompt_debug "No mirror configuration found, skipping mirror sync"
+    return 0
+  fi
+  
   MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
+  # Check if mirror is null or empty
+  if [[ "$MIRROR_LENGTH" == "null" ]] || [[ "$MIRROR_LENGTH" == "0" ]] || [[ -z "$MIRROR_LENGTH" ]]; then
+    op_prompt_debug "Mirror configuration is empty, skipping mirror sync"
+    return 0
+  fi
+  
   local MIRROR_INDEX MIRROR_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_URL MIRROR_FORCE_PUSH
   for ((MIRROR_INDEX = 0; MIRROR_INDEX < MIRROR_LENGTH; MIRROR_INDEX++)); do
     # mirror configuration
@@ -196,7 +210,7 @@ op_process_git_repo() {
     MIRROR_FORCE_PUSH=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].forcePush" | tr -d '"')
     if [[ -z $MIRROR_REMOTE_REPO_NAME ]] || [[ -z $MIRROR_REMOTE_REPO_URL ]]; then
       op_prompt_warn "Mirror repository configuration is not complete, abort this mirror"
-      return 0
+      continue
     fi
     op_set_remote_repo "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
     op_push_remote_repo "$REPO_NAME" "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_FORCE_PUSH"
