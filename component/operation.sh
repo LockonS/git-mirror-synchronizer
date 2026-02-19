@@ -107,37 +107,9 @@ op_handle_repo_data() {
   if [[ "$REPO_URL" == *"github.com"* ]]; then
     op_handle_github_repo "$REPO_RUNTIME_CONFIG"
   elif [[ "$REPO_URL" == *"gitlab.com"* ]]; then
-    echo "gitlab module not supported yet"
+    op_handle_gitlab_repo "$REPO_RUNTIME_CONFIG"
   elif [[ "$REPO_URL" == *"gitee.com"* ]]; then
-    echo "gitee module not supported yet"
-  fi
-}
-
-op_handle_github_repo() {
-  local REPO_RUNTIME_CONFIG REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD REPO_IDENTIFIER REPO_CATALOG
-  REPO_RUNTIME_CONFIG="$*"
-  REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
-  REPO_SYNC=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.sync" | tr -d '"')
-  REPO_RELEASE_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.download" | tr -d '"')
-  REPO_TAG_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.download" | tr -d '"')
-  REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
-  REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
-
-  if [[ "$REPO_SYNC" == "true" ]]; then
-    op_process_git_repo "$REPO_RUNTIME_CONFIG"
-  fi
-
-  if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
-    RELEASE_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.storagePath" | tr -d '"')
-    RELEASE_EXCLUDE_KEYWORDS=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.excludeKeywords" | tr -d '"')
-    RELEASE_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.keptVersionNum" | tr -d '"')
-    op_github_download_release "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS" "$REPO_IDENTIFIER" "$RELEASE_KEPT_VERSION_NUM" "$REPO_CATALOG"
-  fi
-
-  if [[ "$REPO_TAG_DOWNLOAD" == "true" ]]; then
-    TAG_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.storagePath" | tr -d '"')
-    TAG_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.keptVersionNum" | tr -d '"')
-    op_github_download_tag "$REPO_URL" "$TAG_STORAGE_PATH" "$REPO_IDENTIFIER" "$TAG_KEPT_VERSION_NUM" "$REPO_CATALOG"
+    op_handle_gitee_repo "$REPO_RUNTIME_CONFIG"
   fi
 }
 
