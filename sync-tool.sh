@@ -27,7 +27,8 @@ sync_tool_manual() {
   echo "       -h,--help,help             Show manual page"
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/config.json"
   echo "       -d,--data-file   file      Specify input data file, default to path-to-script/data/repo.json"
-  echo "       -m,--mode        mode      Execution mode: all(default), update, sync, release, tag"
+  echo "       -m,--mode        mode      Optional, default to all. [all| update| sync | release | tag]"
+  echo "       --continue                 Resume from the last saved progress index"
   echo "       --dry-run                  Enable dry run mode (no actual changes)"
 }
 
@@ -36,6 +37,8 @@ sync_tool_entry() {
   local RUNTIME_CONFIG_FILE="$DEFAULT_CONFIG_FILE"
   local RUNTIME_DATA_FILE="$DEFAULT_DATA_FILE"
   local EXECUTION_MODE="all"
+  local CONTINUE_MODE="false"
+  local PROGRESS_INDEX_FILE="$TEMP_PATH/progress-index"
 
   while [ $# -gt 0 ]; do
     case ${1} in
@@ -60,6 +63,10 @@ sync_tool_entry() {
         ;;
       '--dry-run')
         DRY_RUN="true"
+        shift
+        ;;
+      '--continue')
+        CONTINUE_MODE="true"
         shift
         ;;
       *) shift ;;
@@ -89,17 +96,32 @@ sync_tool_entry() {
   op_apply_execution_mode "$EXECUTION_MODE"
 
   # load runtime data
-  local RUNTIME_REPO_DATA_CONTENT REPO_LENGTH REPO_INDEX REPO_DATA PROGRESS_INDEX
+  local RUNTIME_REPO_DATA_CONTENT REPO_LENGTH REPO_INDEX REPO_DATA PROGRESS_INDEX START_INDEX
   RUNTIME_REPO_DATA_CONTENT=$(cat "$RUNTIME_DATA_FILE")
+  REPO_LENGTH=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq '. | length')
+
+  # determine start index
+  START_INDEX=0
+  if [[ "$CONTINUE_MODE" == "true" ]]; then
+    if [[ -f "$PROGRESS_INDEX_FILE" ]]; then
+      START_INDEX=$(cat "$PROGRESS_INDEX_FILE")
+      op_prompt_checkpoint "Resuming from repo ${START_INDEX} of ${REPO_LENGTH}"
+    else
+      op_prompt_warn "No saved progress found, starting from the beginning"
+    fi
+  fi
 
   # traverse repo list
-  REPO_LENGTH=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq '. | length')
-  for ((REPO_INDEX = 0; REPO_INDEX < REPO_LENGTH; REPO_INDEX++)); do
-    REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[$REPO_INDEX]")
+  for ((REPO_INDEX = START_INDEX; REPO_INDEX < REPO_LENGTH; REPO_INDEX++)); do
+    REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[${REPO_INDEX}]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
     echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
     op_handle_repo_data "$REPO_DATA"
+    echo "$PROGRESS_INDEX" > "$PROGRESS_INDEX_FILE"
   done
+
+  # clear progress file on successful completion
+  [[ -f "$PROGRESS_INDEX_FILE" ]] && rm -f "$PROGRESS_INDEX_FILE"
 }
 
 op_runtime_prepare

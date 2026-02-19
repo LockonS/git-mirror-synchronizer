@@ -258,15 +258,39 @@ For downloading releases and avoiding API rate limits:
 |--------|-------|-------------|
 | `-f FILE` | `--config-file FILE` | Specify custom global configuration file (default: `data/config.json`) |
 | `-d FILE` | `--data-file FILE` | Specify repository data file (default: `data/repo.json`) |
+| `-m MODE` | `--mode MODE` | Execution mode: `all` (default), `update`, `sync`, `release`, `tag` |
 | `--dry-run` | - | Preview operations without executing |
+| `--continue` | - | Resume processing from the last saved progress index |
 | `-h` | `--help`, `help` | Display help manual |
 
-### Execution Behavior
+### Execution Modes
 
-The tool automatically performs all enabled operations:
-- If `repo.sync = "true"`: Clones/updates repository and pushes to mirrors
-- If `release.download = "true"`: Downloads latest GitHub releases
-- If `tag.download = "true"`: Downloads latest GitHub tags
+| Mode | Repo Clone/Pull | Mirror Sync | Release Download | Tag Download |
+|------|----------------|-------------|------------------|--------------|
+| `all` (default) | ✓ | ✓ | ✓ | ✓ |
+| `update` | ✓ | ✗ | ✗ | ✗ |
+| `sync` | ✓ | ✓ | ✗ | ✗ |
+| `release` | ✗ | ✗ | ✓ | ✗ |
+| `tag` | ✗ | ✗ | ✗ | ✓ |
+
+- **`all`**: Runs all enabled operations as defined in the configuration.
+- **`update`**: Clones or pulls repositories only; skips mirror sync and all downloads.
+- **`sync`**: Clones/pulls repositories and pushes to all configured mirrors; skips downloads.
+- **`release`**: Downloads GitHub release assets only; skips repository and tag operations.
+- **`tag`**: Downloads GitHub tag archives only; skips repository and release operations.
+
+### Resume / Continue Mode
+
+When processing a large list of repositories, the tool saves progress after each completed repository to `temp/progress-index`. If the run is interrupted, you can resume from where it left off:
+
+```bash
+./sync-tool.sh --continue
+```
+
+- Progress is tracked per-run and stored in `temp/progress-index`.
+- On successful completion, the progress file is automatically deleted.
+- `--continue` can be combined with `-m`, `-f`, `-d`, and `--dry-run`.
+- If no saved progress exists, the run starts from the beginning.
 
 ### Basic Usage
 
@@ -283,6 +307,36 @@ The tool automatically performs all enabled operations:
 **Preview operations without executing:**
 ```bash
 ./sync-tool.sh --dry-run
+```
+
+**Sync repositories only (no downloads):**
+```bash
+./sync-tool.sh -m sync
+```
+
+**Download releases only:**
+```bash
+./sync-tool.sh -m release
+```
+
+**Download tags only:**
+```bash
+./sync-tool.sh -m tag
+```
+
+**Update local repos only (no mirror sync, no downloads):**
+```bash
+./sync-tool.sh -m update
+```
+
+**Resume an interrupted run:**
+```bash
+./sync-tool.sh --continue
+```
+
+**Resume an interrupted run in a specific mode:**
+```bash
+./sync-tool.sh --continue -m sync
 ```
 
 ---
