@@ -27,6 +27,30 @@ op_github_extract_repo_identifier() {
   echo "$REPO_IDENTIFIER"
 }
 
+# check GitHub API response for errors
+# Parameters: JSON_DATA, ARTIFACT_TYPE ("release" or "tags")
+# Returns: 0 if no error or "Not Found", 1 for other errors
+op_github_check_api_response() {
+  local JSON_DATA ARTIFACT_TYPE RESPONSE_MESSAGE
+  JSON_DATA="${1}"
+  ARTIFACT_TYPE="${2}"
+  
+  RESPONSE_MESSAGE=$(printf "%s" "$JSON_DATA" | jq -r 'select(type=="object" and has("message")) | .message')
+  if [[ -n "$RESPONSE_MESSAGE" && "$RESPONSE_MESSAGE" != "null" ]]; then
+    case "$RESPONSE_MESSAGE" in
+      *"Not Found"*)
+        op_prompt_info "No ${ARTIFACT_TYPE} artifact found"
+        return 0
+        ;;
+      *)
+        op_prompt_warn "GitHub API response: ${BOLD}${RESPONSE_MESSAGE}${NC}"
+        return 1
+        ;;
+    esac
+  fi
+  return 0
+}
+
 op_github_download_release() {
   # parameters
   local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER
@@ -67,12 +91,7 @@ op_github_download_release() {
   REPO_RELEASE_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
 
   # Check for error message in response (e.g., rate limit or not found)
-  local RESPONSE_MESSAGE
-  RESPONSE_MESSAGE=$(printf "%s" "$REPO_RELEASE_DATA" | jq -r 'select(type=="object" and has("message")) | .message')
-  if [[ -n "$RESPONSE_MESSAGE" && "$RESPONSE_MESSAGE" != "null" ]]; then
-    op_prompt_warn "GitHub API response: ${BOLD}${RESPONSE_MESSAGE}${NC}"
-    return 1
-  fi
+  op_github_check_api_response "$REPO_RELEASE_DATA" "release" || return $?
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
@@ -147,12 +166,7 @@ op_github_download_tag() {
   REPO_TAGS_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
 
   # Check for error message in response (e.g., rate limit or not found)
-  local RESPONSE_MESSAGE
-  RESPONSE_MESSAGE=$(printf "%s" "$REPO_TAGS_DATA" | jq -r 'select(type=="object" and has("message")) | .message')
-  if [[ -n "$RESPONSE_MESSAGE" && "$RESPONSE_MESSAGE" != "null" ]]; then
-    op_prompt_warn "GitHub API response: ${BOLD}${RESPONSE_MESSAGE}${NC}"
-    return 1
-  fi
+  op_github_check_api_response "$REPO_TAGS_DATA" "tags" || return $?
 
   # traverse release assets list
   local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME CMD_DOWNLOAD_ASSET
