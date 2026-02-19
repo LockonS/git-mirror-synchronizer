@@ -303,13 +303,14 @@ op_push_remote_repo() {
 
 # cleanup old versions, keep only the newest N versions
 op_cleanup_old_versions() {
-  op_prompt_checkpoint "Cleanup old ${TYPE}(s), keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}(s)"
 
   local STORAGE_PATH REPO_IDENTIFIER KEPT_VERSION_NUM TYPE
   STORAGE_PATH="${1}"
   REPO_IDENTIFIER="${2}"
   KEPT_VERSION_NUM="${3}"
   TYPE="${4:-version}"
+
+  op_prompt_checkpoint "Cleanup old ${TYPE}, keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}"
 
   # default to 3 if not set or invalid
   if [[ -z "$KEPT_VERSION_NUM" || "$KEPT_VERSION_NUM" == "null" ]]; then
