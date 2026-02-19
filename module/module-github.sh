@@ -111,6 +111,7 @@ op_github_download_release() {
     op_prompt_info "No release artifact found"
     return 0
   fi
+
   op_prompt_info "Found ${GREEN}${ASSET_LENGTH}${NC} assets"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
     ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
@@ -195,7 +196,7 @@ op_github_download_tag() {
 
   # skip already downloaded assets
   if [[ -f "${TAG_STORAGE_PATH}/${ASSET_NAME}" ]]; then
-    op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} already downloaded"
+    op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} >> Skipped: already downloaded"
     return 0
   fi
 
@@ -235,7 +236,7 @@ op_github_download_release_asset() {
     IFS=',' read -A EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
     for KEYWORD in "${EXCLUDE_KEYWORD_LIST[@]}"; do
       if [[ "$ASSET_NAME" == *$KEYWORD* ]]; then
-        op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} state: ${BOLD}${YELLOW}Ignored [exclude: ${KEYWORD}]${NC}"
+        op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} >> Skipped: excluded by keyword '${YELLOW}${KEYWORD}${NC}'"
         return 0
       fi
     done
@@ -243,7 +244,7 @@ op_github_download_release_asset() {
 
   # skip already downloaded assets
   if [[ -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}" ]]; then
-    op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} state: ${BOLD}${YELLOW}Downloaded${NC}"
+    op_prompt_info "Asset ${BOLD}${GREEN}${ASSET_NAME}${NC} >> Skipped: already downloaded"
     return 0
   fi
 

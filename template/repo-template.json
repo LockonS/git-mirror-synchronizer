@@ -10,7 +10,8 @@
     "release": {
       "storagePath": "/opt/git/git-release",
       "download": "true",
-      "keptVersionNum": "3"
+      "keptVersionNum": "3",
+      "excludeKeywords": "windows,darwin"
     },
     "tag": {
       "storagePath": "/opt/git/git-tag",
@@ -19,8 +20,8 @@
     },
     "mirror": [
       {
-        "name": "gitlab",
-        "repoUrl": "git@gitlab.dreamisty.com:mirror/LockonS/git-mirror-synchronizer.git",
+        "name": "custom",
+        "repoUrl": "custom-git-repo-url.git",
         "forcePush": "false"
       }
     ]
