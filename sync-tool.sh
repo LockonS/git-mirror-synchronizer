@@ -27,6 +27,7 @@ sync_tool_manual() {
   echo "       -h,--help,help             Show manual page"
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/config.json"
   echo "       -d,--data-file   file      Specify input data file, default to path-to-script/data/repo.json"
+  echo "       -r,--repo-url    url       Process a single repository by its repoUrl"
   echo "       -m,--mode        mode      Optional, default to all. [all| update| sync | release | tag]"
   echo "       --continue                 Resume from the last saved progress index"
   echo "       --dry-run                  Enable dry run mode (no actual changes)"
@@ -38,6 +39,7 @@ sync_tool_entry() {
   local RUNTIME_DATA_FILE="$DEFAULT_DATA_FILE"
   local EXECUTION_MODE="all"
   local CONTINUE_MODE="false"
+  local FILTER_REPO_URL=""
   local PROGRESS_INDEX_FILE="$TEMP_PATH/progress-index"
 
   while [ $# -gt 0 ]; do
@@ -53,6 +55,11 @@ sync_tool_entry() {
         ;;
       '-d' | '--data-file')
         RUNTIME_DATA_FILE=${2}
+        shift
+        shift
+        ;;
+      '-r' | '--repo-url')
+        FILTER_REPO_URL=${2}
         shift
         shift
         ;;
@@ -96,9 +103,10 @@ sync_tool_entry() {
   op_apply_execution_mode "$EXECUTION_MODE"
 
   # load runtime data
-  local RUNTIME_REPO_DATA_CONTENT REPO_LENGTH REPO_INDEX REPO_DATA PROGRESS_INDEX START_INDEX
+  local RUNTIME_REPO_DATA_CONTENT REPO_LENGTH REPO_INDEX REPO_DATA PROGRESS_INDEX START_INDEX REPO_MATCHED
   RUNTIME_REPO_DATA_CONTENT=$(cat "$RUNTIME_DATA_FILE")
   REPO_LENGTH=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq '. | length')
+  REPO_MATCHED="false"
 
   # determine start index
   START_INDEX=0
@@ -115,10 +123,26 @@ sync_tool_entry() {
   for ((REPO_INDEX = START_INDEX; REPO_INDEX < REPO_LENGTH; REPO_INDEX++)); do
     REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[${REPO_INDEX}]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
-    echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
+    REPO_URL=$(echo "$REPO_DATA" | jq ".repoUrl" | tr -d '"')
+
+    # filter by repoUrl if --repo-url is specified
+    if [[ -n "$FILTER_REPO_URL" ]] && [[ "$REPO_URL" != "$FILTER_REPO_URL" ]]; then
+      continue
+    fi
+
+    REPO_MATCHED="true"
+    [[ -z "$FILTER_REPO_URL" ]] && echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
+
     op_handle_repo_data "$REPO_DATA"
-    echo "$PROGRESS_INDEX" > "$PROGRESS_INDEX_FILE"
+    
+    [[ -z "$FILTER_REPO_URL" ]] && echo "$PROGRESS_INDEX" > "$PROGRESS_INDEX_FILE"
+  
   done
+
+  # warn if --repo-url matched nothing
+  if [[ -n "$FILTER_REPO_URL" ]] && [[ "$REPO_MATCHED" != "true" ]]; then
+    op_prompt_warn "No repository matched repoUrl: ${FILTER_REPO_URL}"
+  fi
 
   # clear progress file on successful completion
   [[ -f "$PROGRESS_INDEX_FILE" ]] && rm -f "$PROGRESS_INDEX_FILE"
