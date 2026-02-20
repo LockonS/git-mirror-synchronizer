@@ -1,14 +1,8 @@
 #!/usr/bin/env zsh
 
-op_log_to_file() {
-  if [[ -n "$LOG_FILE" ]]; then
-    echo -e "${1}" | sed $'s/\x1b\[[0-9;]*m//g' >> "$LOG_FILE"
-  fi
-}
 
 op_prompt_checkpoint() {
   echo -e "${BLUE}==>${NC} ${WHITE}${1}${NC}"
-  op_log_to_file "==> ${1}"
 }
 
 op_prompt_debug() {
@@ -16,29 +10,24 @@ op_prompt_debug() {
     return 0
   fi
   echo -e "${GREY}${1}${NC}"
-  op_log_to_file "[DEBUG] ${1}"
 }
 
 op_prompt_info() {
   echo -e "${WHITE}${1}${NC}"
-  op_log_to_file "${1}"
 }
 
 op_prompt_warn() {
   echo -e "${BOLD}${YELLOW}${1}${NC}"
-  op_log_to_file "[WARN] ${1}"
 }
 
 op_prompt_error() {
   echo -e "${BOLD}${RED}${1}${NC}"
-  op_log_to_file "[ERROR] ${1}"
 }
 
 op_run_cmd() {
   local CMD_STR=${*}
 
   if [[ "$DRY_RUN" != true ]]; then
-    op_log_to_file "[CMD] ${CMD_STR}"
     if ! zsh -c "$CMD_STR"; then
       op_prompt_error "Error: command execute failure"
       return 1
@@ -46,7 +35,6 @@ op_run_cmd() {
   else
     # print command on console
     echo -e "\n${GREY}${CMD_STR}${NC}\n"
-    op_log_to_file "[DRY-RUN] ${CMD_STR}"
   fi
 }
 

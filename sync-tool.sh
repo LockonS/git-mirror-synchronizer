@@ -149,4 +149,6 @@ sync_tool_entry() {
 }
 
 op_runtime_prepare
-sync_tool_entry "$@"
+
+# Pipe all output from sync_tool_entry to both console and log file
+sync_tool_entry "$@" 2>&1 | tee -a "$LOG_FILE"
