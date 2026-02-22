@@ -10,6 +10,7 @@ export DATA_PATH="$SYNC_TOOL_PATH/data"
 export CONFIG_PATH="$SYNC_TOOL_PATH/config"
 export TEMP_PATH="$SYNC_TOOL_PATH/temp"
 export LOG_PATH="$SYNC_TOOL_PATH/log"
+export REPORT_PATH="$SYNC_TOOL_PATH/report"
 
 # include component
 source "$COMPONENT_PATH/common.sh"
@@ -119,6 +120,12 @@ sync_tool_entry() {
     fi
   fi
 
+  # report counters
+  local REPORT_TOTAL=0 REPORT_SUCCESS=0 REPORT_FAILED=0
+
+  # write report header
+  op_report_write_header "$EXECUTION_MODE"
+
   # traverse repo list
   for ((REPO_INDEX = START_INDEX; REPO_INDEX < REPO_LENGTH; REPO_INDEX++)); do
     REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[${REPO_INDEX}]")
@@ -134,7 +141,16 @@ sync_tool_entry() {
     [[ -z "$FILTER_REPO_URL" ]] && echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
 
     op_handle_repo_data "$REPO_DATA"
-    
+
+    REPORT_TOTAL=$((REPORT_TOTAL + 1))
+    if [[ "$REPO_PROCESS_STATUS" == "failed" ]]; then
+      REPORT_FAILED=$((REPORT_FAILED + 1))
+      op_report_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "FAIL"
+    else
+      REPORT_SUCCESS=$((REPORT_SUCCESS + 1))
+      op_report_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "PASS"
+    fi
+
     [[ -z "$FILTER_REPO_URL" ]] && echo "$PROGRESS_INDEX" > "$PROGRESS_INDEX_FILE"
   
   done
@@ -143,6 +159,9 @@ sync_tool_entry() {
   if [[ -n "$FILTER_REPO_URL" ]] && [[ "$REPO_MATCHED" != "true" ]]; then
     op_prompt_warn "No repository matched repoUrl: ${FILTER_REPO_URL}"
   fi
+
+  # print and save report summary
+  op_report_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED"
 
   # clear progress file on successful completion
   [[ -f "$PROGRESS_INDEX_FILE" ]] && rm -f "$PROGRESS_INDEX_FILE"

@@ -38,6 +38,13 @@ op_run_cmd() {
   fi
 }
 
+# run a command and track its failure into the global REPO_PROCESS_STATUS
+op_run_tracked_cmd() {
+  if ! op_run_cmd "$@"; then
+    REPO_PROCESS_STATUS="failed"
+  fi
+}
+
 op_run_cmd_with_result() {
   local CMD_STR=${*}
 
@@ -66,6 +73,7 @@ op_runtime_prepare() {
   echo -e "\n--------------------- $OPERATION_TIME ---------------------\n"
   mkdir -p "$TEMP_PATH"
   mkdir -p "$LOG_PATH"
+  mkdir -p "$REPORT_PATH"
 
   LOG_TIMESTAMP=$(date '+%Y%m%d%H%M%S')
   LOG_FILE="$LOG_PATH/sync-${LOG_TIMESTAMP}.log"
@@ -73,10 +81,67 @@ op_runtime_prepare() {
     touch "$LOG_FILE"
   fi
 
+  REPORT_FILE="$REPORT_PATH/report-${LOG_TIMESTAMP}.log"
+  touch "$REPORT_FILE"
+  export LOG_FILE REPORT_FILE
+
   if [[ ! -f "$DEFAULT_CONFIG_FILE" ]]; then
     op_prompt_checkpoint "Default config file not found, creating from global config template" 
     op_prompt_debug "Global config file: ${GREEN}${GLOBAL_CONFIG_FILE}${NC}"
     cp "$GLOBAL_CONFIG_FILE" "$DEFAULT_CONFIG_FILE"
+  fi
+}
+
+# write the report file header
+op_report_write_header() {
+  local EXECUTION_MODE="${1:-all}"
+  echo -e "\n${BOLD}${WHITE}=== Sync Report ===${NC}"
+  echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+  echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
+  [[ -z "$REPORT_FILE" ]] && return 0
+  {
+    echo "=== Sync Report ==="
+    echo "Date:    $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "Mode:    ${EXECUTION_MODE}"
+    echo ""
+  } > "$REPORT_FILE"
+}
+
+# append a single repo result line to the report file
+op_report_repo_result() {
+  local INDEX="${1}"
+  local TOTAL="${2}"
+  local REPO_URL="${3}"
+  local STATUS="${4}"
+  if [[ "$STATUS" == "PASS" ]]; then
+    echo -e "[${INDEX}/${TOTAL}] ${GREEN}${BOLD}${STATUS}${NC}   ${REPO_URL}"
+  else
+    echo -e "[${INDEX}/${TOTAL}] ${RED}${BOLD}${STATUS}${NC}   ${REPO_URL}"
+  fi
+  [[ -z "$REPORT_FILE" ]] && return 0
+  printf "[%d/%d] %-6s %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
+}
+
+# append summary block to the report file and echo it to stdout
+op_report_summary() {
+  local TOTAL="${1}"
+  local SUCCESS="${2}"
+  local FAILED="${3}"
+
+  echo -e "\n${BOLD}${WHITE}=== Report Summary ===${NC}"
+  echo -e "Total:    ${WHITE}${TOTAL}${NC}"
+  echo -e "Success:  ${GREEN}${SUCCESS}${NC}"
+  echo -e "Failed:   ${RED}${FAILED}${NC}"
+
+  if [[ -n "$REPORT_FILE" ]]; then
+    {
+      echo ""
+      echo "=== Summary ==="
+      echo "Total:    ${WHITE}${TOTAL}${NC}"
+      echo "Success:  ${GREEN}${SUCCESS}${NC}"
+      echo "Failed:   ${RED}${FAILED}${NC}"
+    } >> "$REPORT_FILE"
+    echo -e "\nReport saved: ${BOLD}${REPORT_FILE}${NC}"
   fi
 }
 
@@ -148,12 +213,18 @@ op_handle_repo_data() {
   REPO_RUNTIME_CONFIG=$(op_load_repo_config "$REPO_DATA")
   REPO_URL=$(echo "$REPO_DATA" | jq ".repoUrl" | tr -d '"')
 
+  # reset per-repo status before processing
+  REPO_PROCESS_STATUS="success"
+
   if [[ "$REPO_URL" == *"github.com"* ]]; then
     op_handle_github_repo "$REPO_RUNTIME_CONFIG"
   elif [[ "$REPO_URL" == *"gitlab.com"* ]]; then
     op_handle_gitlab_repo "$REPO_RUNTIME_CONFIG"
   elif [[ "$REPO_URL" == *"gitee.com"* ]]; then
     op_handle_gitee_repo "$REPO_RUNTIME_CONFIG"
+  else
+    op_prompt_warn "Unknown repo provider for: ${REPO_URL}"
+    REPO_PROCESS_STATUS="failed"
   fi
 }
 
@@ -194,14 +265,14 @@ op_process_git_repo() {
   if [[ ! -d "$REPO_LOCAL_PATH" ]]; then
     # clone repo if directory not exist
     op_prompt_debug "Project repository not initialized, clone repo to target path"
-    op_run_cmd "$CMD_GIT_CLONE_REPO"
+    op_run_tracked_cmd "$CMD_GIT_CLONE_REPO"
   elif [[ -d $REPO_LOCAL_PATH/.git ]]; then
     # validate if local repo is already initalized if directory exist
     op_prompt_debug "Project repository is initialized, try update with git"
-    op_run_cmd "$CMD_GIT_PULL"
+    op_run_tracked_cmd "$CMD_GIT_PULL"
   else
     op_prompt_debug "Project repository not initialized, try clone into the directory"
-    op_run_cmd "$CMD_GIT_CLONE_REPO"
+    op_run_tracked_cmd "$CMD_GIT_CLONE_REPO"
   fi
 
   # Check if mirror sync is disabled by execution mode
@@ -251,7 +322,7 @@ op_set_remote_repo() {
     op_prompt_checkpoint "Setup remote repo ${BOLD}${GREEN}${MIRROR_REMOTE_REPO_NAME}${NC}"
     echo -e "${MIRROR_REMOTE_REPO_NAME}: ${BOLD}${MIRROR_REMOTE_REPO_URL}${NC}"
     local CMD_ADD_REMOTE_REPO="git -C $REPO_LOCAL_PATH remote add $MIRROR_REMOTE_REPO_NAME $MIRROR_REMOTE_REPO_URL"
-    op_run_cmd "$CMD_ADD_REMOTE_REPO"
+    op_run_tracked_cmd "$CMD_ADD_REMOTE_REPO"
   else
     op_prompt_checkpoint "Remote repo ${BOLD}${BLUE}${MIRROR_REMOTE_REPO_NAME}${NC} already setup"
     echo -e "${MIRROR_REMOTE_REPO_NAME}: ${BOLD}${MIRROR_REMOTE_REPO_URL}${NC}"
@@ -278,12 +349,12 @@ op_push_remote_repo() {
   local CMD_GIT_FORCE_PUSH_TO_MIRROR="git -C $REPO_LOCAL_PATH push $MIRROR_REMOTE_REPO_NAME --force"
 
   # run command
-  op_run_cmd "$CMD_GIT_RESET_HEADER"
+  op_run_tracked_cmd "$CMD_GIT_RESET_HEADER"
   if [[ $SYNC_MIRROR == "true" ]]; then
     if [[ "$MIRROR_FORCE_PUSH" == "true" ]]; then
-      op_run_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"
+      op_run_tracked_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"
     else
-      op_run_cmd "$CMD_GIT_PUSH_TO_MIRROR"
+      op_run_tracked_cmd "$CMD_GIT_PUSH_TO_MIRROR"
     fi
   fi
 }
