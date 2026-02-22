@@ -3,6 +3,7 @@ data/
 history/
 log/
 temp/
+report/
 *.log
 .idea/
 .vscode
