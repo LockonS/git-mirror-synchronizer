@@ -100,9 +100,9 @@ op_report_write_header() {
   echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
   [[ -z "$REPORT_FILE" ]] && return 0
   {
-    echo "=== Sync Report ==="
-    echo "Date:    $(date '+%Y-%m-%d %H:%M:%S')"
-    echo "Mode:    ${EXECUTION_MODE}"
+    echo -e "${BOLD}${WHITE}=== Sync Report ===${NC}"
+    echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+    echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
     echo ""
   } > "$REPORT_FILE"
 }
@@ -119,7 +119,11 @@ op_report_repo_result() {
     echo -e "[${INDEX}/${TOTAL}] ${RED}${BOLD}${STATUS}${NC}   ${REPO_URL}"
   fi
   [[ -z "$REPORT_FILE" ]] && return 0
-  printf "[%d/%d] %-6s %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
+  if [[ "$STATUS" == "PASS" ]]; then
+    printf "[%d/%d] ${GREEN}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
+  else
+    printf "[%d/%d] ${RED}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
+  fi
 }
 
 # append summary block to the report file and echo it to stdout
@@ -136,10 +140,10 @@ op_report_summary() {
   if [[ -n "$REPORT_FILE" ]]; then
     {
       echo ""
-      echo "=== Summary ==="
-      echo "Total:    ${WHITE}${TOTAL}${NC}"
-      echo "Success:  ${GREEN}${SUCCESS}${NC}"
-      echo "Failed:   ${RED}${FAILED}${NC}"
+      echo -e "${BOLD}${WHITE}=== Summary ===${NC}"
+      echo -e "Total:    ${WHITE}${TOTAL}${NC}"
+      echo -e "Success:  ${GREEN}${SUCCESS}${NC}"
+      echo -e "Failed:   ${RED}${FAILED}${NC}"
     } >> "$REPORT_FILE"
     echo -e "\nReport saved: ${BOLD}${REPORT_FILE}${NC}"
   fi
