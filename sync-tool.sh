@@ -164,6 +164,8 @@ sync_tool_entry() {
     END_INDEX="$REPO_LENGTH"
   fi
 
+  echo -e "start: ${START_INDEX}, end: ${END_INDEX}"
+
   for ((REPO_INDEX = START_INDEX; REPO_INDEX < END_INDEX; REPO_INDEX++)); do
     REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[${REPO_INDEX}]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
