@@ -109,7 +109,8 @@ sync_tool_entry() {
 
   # validate input START_INDEX
   if [[ -n "$START_INDEX" ]]; then
-    if ! [[ "$START_INDEX" =~ ^[0-9]+$ ]] || [[ "$START_INDEX" -lt 0 ]]; then
+    # Remove all digits - if result is non-empty, it contains non-digit characters
+    if [[ -n "${START_INDEX//[0-9]/}" ]]; then
       echo "${RED}Invalid START_INDEX: ${START_INDEX}${NC}"
       echo "START_INDEX must be a non-negative integer (>= 0)"
       return 1
@@ -118,7 +119,8 @@ sync_tool_entry() {
 
   # validate input END_INDEX
   if [[ -n "$END_INDEX" ]]; then
-    if ! [[ "$END_INDEX" =~ ^[0-9]+$ ]] || [[ "$END_INDEX" -lt 0 ]]; then
+    # Remove all digits - if result is non-empty, it contains non-digit characters
+    if [[ -n "${END_INDEX//[0-9]/}" ]]; then
       echo "${RED}Invalid END_INDEX: ${END_INDEX}${NC}"
       echo "END_INDEX must be a non-negative integer (>= 0)"
       return 1
