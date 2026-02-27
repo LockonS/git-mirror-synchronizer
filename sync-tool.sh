@@ -156,9 +156,6 @@ sync_tool_entry() {
   # report counters
   local REPORT_TOTAL=0 REPORT_SUCCESS=0 REPORT_FAILED=0
 
-  # write report header
-  op_report_write_header "$EXECUTION_MODE"
-
 
   # traverse repo list, determine start and end index
   if [[ -z "$START_INDEX" ]]; then
@@ -168,7 +165,8 @@ sync_tool_entry() {
     END_INDEX="$REPO_LENGTH"
   fi
 
-  echo -e "start: ${START_INDEX}, end: ${END_INDEX}"
+  # write report header
+  op_report_write_header "$EXECUTION_MODE" "$START_INDEX" "$END_INDEX"
 
   for ((REPO_INDEX = START_INDEX; REPO_INDEX < END_INDEX; REPO_INDEX++)); do
     REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[${REPO_INDEX}]")

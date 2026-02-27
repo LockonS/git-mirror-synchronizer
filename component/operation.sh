@@ -95,14 +95,18 @@ op_runtime_prepare() {
 # write the report file header
 op_report_write_header() {
   local EXECUTION_MODE="${1:-all}"
+  local START_INDEX="${2:-0}"
+  local END_INDEX="${3:-}"
   echo -e "\n${BOLD}${WHITE}=== Sync Report ===${NC}"
   echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
   echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
+  echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
   [[ -z "$REPORT_FILE" ]] && return 0
   {
     echo -e "${BOLD}${WHITE}=== Sync Report ===${NC}"
     echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
     echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
+    echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
     echo ""
   } > "$REPORT_FILE"
 }
