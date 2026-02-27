@@ -110,7 +110,8 @@ repo.json (per-repo) > data/config.json (custom global) > config/config.global.j
       "storagePath": "/opt/git/git-release",
       "download": "true",
       "keptVersionNum": "3",
-      "excludeKeywords": "windows,arm64"
+      "excludeKeywords": ["windows", "arm64"],
+      "keptVersionKeywords": ["v1.0"]
     },
     "tag": {
       "storagePath": "/opt/git/git-tag",
@@ -135,7 +136,8 @@ repo.json (per-repo) > data/config.json (custom global) > config/config.global.j
 - **catalog** (optional): Category path for organization (e.g., "tools/automation")
 - **repo.sync**: Enable repository sync ("true"/"false")
 - **release.download**: Enable release downloads ("true"/"false")
-- **release.excludeKeywords**: Comma-separated keywords to exclude from downloads
+- **release.excludeKeywords**: Array of keywords to exclude assets from downloads (e.g. `["windows", "arm64"]`)
+- **release.keptVersionKeywords**: Array of version names to always keep, regardless of `keptVersionNum` (e.g. `["v1.0"]`)
 - **tag.download**: Enable tag downloads ("true"/"false")
 - **mirror**: Array of mirror destinations
 
@@ -232,7 +234,7 @@ git-mirror-synchronizer/
     },
     "release": {
       "download": "true",
-      "excludeKeywords": "darwin,windows"
+      "excludeKeywords": ["darwin", "windows"]
     }
   }
 ]

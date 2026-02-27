@@ -74,13 +74,14 @@ op_github_validate_response() {
 }
 
 op_github_download_release() {
-  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER
+  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   EXCLUDE_KEYWORDS="${3}"
   CUSTOM_IDENTIFIER="${4}"
   KEPT_VERSION_NUM="${5}"
   REPO_CATALOG="${6}"
+  KEPT_VERSIONS="${7}"
   
   # use custom identifier if provided, otherwise extract from URL
   if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
@@ -143,21 +144,22 @@ op_github_download_release() {
 
   # cleanup old releases (include catalog in base path)
   if [[ -n "$REPO_CATALOG" ]] && [[ "$REPO_CATALOG" != "null" ]]; then
-    op_cleanup_old_versions "${REPO_RELEASE_STORAGE}/${REPO_CATALOG}" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "release"
+    op_cleanup_old_versions "${REPO_RELEASE_STORAGE}/${REPO_CATALOG}" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "release" "$KEPT_VERSIONS"
   else
-    op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "release"
+    op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "release" "$KEPT_VERSIONS"
   fi
 }
 
 # currently only GitHub is supported, only tar.gz archive will be downloaded
 op_github_download_tag() {
   # parameters
-  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER
+  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   CUSTOM_IDENTIFIER="${3}"
   KEPT_VERSION_NUM="${4}"
   REPO_CATALOG="${5}"
+  KEPT_VERSIONS="${6}"
   
   # use custom identifier if provided, otherwise extract from URL
   if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
@@ -234,9 +236,9 @@ op_github_download_tag() {
 
   # cleanup old tags (include catalog in base path)
   if [[ -n "$REPO_CATALOG" ]] && [[ "$REPO_CATALOG" != "null" ]]; then
-    op_cleanup_old_versions "${REPO_RELEASE_STORAGE}/${REPO_CATALOG}" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "tag"
+    op_cleanup_old_versions "${REPO_RELEASE_STORAGE}/${REPO_CATALOG}" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "tag" "$KEPT_VERSIONS"
   else
-    op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "tag"
+    op_cleanup_old_versions "$REPO_RELEASE_STORAGE" "$REPO_IDENTIFIER" "$KEPT_VERSION_NUM" "tag" "$KEPT_VERSIONS"
   fi
 }
 
@@ -298,15 +300,17 @@ op_handle_github_repo() {
 
   if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
     RELEASE_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.storagePath" | tr -d '"')
-    RELEASE_EXCLUDE_KEYWORDS=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.excludeKeywords" | tr -d '"')
+    RELEASE_EXCLUDE_KEYWORDS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.release.excludeKeywords // [] | join(",")')
     RELEASE_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.keptVersionNum" | tr -d '"')
-    op_github_download_release "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS" "$REPO_IDENTIFIER" "$RELEASE_KEPT_VERSION_NUM" "$REPO_CATALOG"
+    RELEASE_KEPT_VERSIONS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.release.keptVersionKeywords // [] | join(",")')
+    op_github_download_release "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS" "$REPO_IDENTIFIER" "$RELEASE_KEPT_VERSION_NUM" "$REPO_CATALOG" "$RELEASE_KEPT_VERSIONS"
   fi
 
   if [[ "$REPO_TAG_DOWNLOAD" == "true" ]]; then
     TAG_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.storagePath" | tr -d '"')
     TAG_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.keptVersionNum" | tr -d '"')
-    op_github_download_tag "$REPO_URL" "$TAG_STORAGE_PATH" "$REPO_IDENTIFIER" "$TAG_KEPT_VERSION_NUM" "$REPO_CATALOG"
+    TAG_KEPT_VERSIONS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.tag.keptVersionKeywords // [] | join(",")')
+    op_github_download_tag "$REPO_URL" "$TAG_STORAGE_PATH" "$REPO_IDENTIFIER" "$TAG_KEPT_VERSION_NUM" "$REPO_CATALOG" "$TAG_KEPT_VERSIONS"
   fi
 }
 

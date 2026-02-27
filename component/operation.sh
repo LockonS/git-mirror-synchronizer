@@ -364,18 +364,19 @@ op_push_remote_repo() {
 }
 
 
-# cleanup old versions, keep only the newest N versions
+# cleanup old versions, keep only the newest N versions and specific pinned versions
 op_cleanup_old_versions() {
 
-  local STORAGE_PATH REPO_IDENTIFIER KEPT_VERSION_NUM TYPE
+  local STORAGE_PATH REPO_IDENTIFIER KEPT_VERSION_NUM TYPE KEPT_VERSIONS
   STORAGE_PATH="${1}"
   REPO_IDENTIFIER="${2}"
   KEPT_VERSION_NUM="${3}"
   TYPE="${4:-version}"
+  KEPT_VERSIONS="${5}"
 
   op_prompt_checkpoint "Cleanup old ${TYPE}, keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}"
 
-  # default to 3 if not set or invalid
+  # default to 5 if not set or invalid
   if [[ -z "$KEPT_VERSION_NUM" || "$KEPT_VERSION_NUM" == "null" ]]; then
     KEPT_VERSION_NUM=5
   fi
@@ -383,9 +384,40 @@ op_cleanup_old_versions() {
   if [[ -d "$STORAGE_PATH/$REPO_IDENTIFIER" ]]; then
     local VERSION_DIRS
     VERSION_DIRS=($(ls -1dt "$STORAGE_PATH/$REPO_IDENTIFIER"/*/ 2>/dev/null))
-    if (( ${#VERSION_DIRS[@]} > KEPT_VERSION_NUM )); then
-      op_prompt_info "Keeping ${KEPT_VERSION_NUM} newest ${TYPE}(s), removing $((${#VERSION_DIRS[@]} - KEPT_VERSION_NUM)) old ${TYPE}(s)"
-      for DIR in "${VERSION_DIRS[@]:KEPT_VERSION_NUM}"; do
+
+    # build list of pinned version names that must not be deleted
+    local PINNED_VERSIONS=()
+    if [[ -n "$KEPT_VERSIONS" && "$KEPT_VERSIONS" != "null" ]]; then
+      IFS=',' read -A PINNED_VERSIONS <<<"$KEPT_VERSIONS"
+    fi
+
+    # separate dirs into eligible-for-cleanup and pinned
+    local ELIGIBLE_DIRS=()
+    for DIR in "${VERSION_DIRS[@]}"; do
+      local DIR_NAME IS_PINNED
+      DIR_NAME=$(basename "$DIR")
+      IS_PINNED=false
+      for PINNED_VER in "${PINNED_VERSIONS[@]}"; do
+        if [[ "$DIR_NAME" == "$PINNED_VER" ]]; then
+          IS_PINNED=true
+          break
+        fi
+      done
+      if [[ "$IS_PINNED" == "false" ]]; then
+        ELIGIBLE_DIRS+=("$DIR")
+      fi
+    done
+
+    # report pinned versions
+    for PINNED_VER in "${PINNED_VERSIONS[@]}"; do
+      if [[ -d "$STORAGE_PATH/$REPO_IDENTIFIER/$PINNED_VER" ]]; then
+        op_prompt_info "Keeping pinned ${TYPE}: ${BOLD}${GREEN}${PINNED_VER}${NC}"
+      fi
+    done
+
+    if (( ${#ELIGIBLE_DIRS[@]} > KEPT_VERSION_NUM )); then
+      op_prompt_info "Keeping ${KEPT_VERSION_NUM} newest ${TYPE}(s), removing $((${#ELIGIBLE_DIRS[@]} - KEPT_VERSION_NUM)) old ${TYPE}(s)"
+      for DIR in "${ELIGIBLE_DIRS[@]:KEPT_VERSION_NUM}"; do
         op_prompt_info "Removing old ${TYPE}: $(basename "$DIR")"
         rm -rf "$DIR"
       done

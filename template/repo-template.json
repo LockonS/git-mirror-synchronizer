@@ -11,7 +11,13 @@
       "storagePath": "/opt/git/git-release",
       "download": "true",
       "keptVersionNum": "3",
-      "excludeKeywords": "windows,darwin"
+      "excludeKeywords": [
+        "windows",
+        "darwin"
+      ],
+      "keptVersionKeywords": [
+        "v1.0"
+      ]
     },
     "tag": {
       "storagePath": "/opt/git/git-tag",
