@@ -42,6 +42,8 @@ sync_tool_entry() {
   local CONTINUE_MODE="false"
   local FILTER_REPO_URL=""
   local PROGRESS_INDEX_FILE="$TEMP_PATH/progress-index"
+  local START_INDEX=""
+  local END_INDEX=""
 
   while [ $# -gt 0 ]; do
     case ${1} in
@@ -61,6 +63,16 @@ sync_tool_entry() {
         ;;
       '-r' | '--repo-url')
         FILTER_REPO_URL=${2}
+        shift
+        shift
+        ;;
+      '-s' | '--index-start')
+        START_INDEX=${2}
+        shift
+        shift
+        ;;
+      '-e' | '--index-end')
+        END_INDEX=${2}
         shift
         shift
         ;;
@@ -93,6 +105,24 @@ sync_tool_entry() {
       ;;
   esac
 
+  # validate input START_INDEX
+  if [[ -n "$START_INDEX" ]]; then
+    if ! [[ "$START_INDEX" =~ ^[0-9]+$ ]] || [[ "$START_INDEX" -lt 0 ]]; then
+      echo "${RED}Invalid START_INDEX: ${START_INDEX}${NC}"
+      echo "START_INDEX must be a non-negative integer (>= 0)"
+      return 1
+    fi
+  fi
+
+  # validate input END_INDEX
+  if [[ -n "$END_INDEX" ]]; then
+    if ! [[ "$END_INDEX" =~ ^[0-9]+$ ]] || [[ "$END_INDEX" -lt 0 ]]; then
+      echo "${RED}Invalid END_INDEX: ${END_INDEX}${NC}"
+      echo "END_INDEX must be a non-negative integer (>= 0)"
+      return 1
+    fi
+  fi
+
   # check if config file exist
   [[ ! -f $RUNTIME_CONFIG_FILE ]] && echo "Config file '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}' does not exist" && return 1
   [[ ! -f $RUNTIME_DATA_FILE ]] && echo "Data file '${YELLOW}${RUNTIME_DATA_FILE}${NC}' does not exist" && return 1
@@ -110,7 +140,6 @@ sync_tool_entry() {
   REPO_MATCHED="false"
 
   # determine start index
-  START_INDEX=0
   if [[ "$CONTINUE_MODE" == "true" ]]; then
     if [[ -f "$PROGRESS_INDEX_FILE" ]]; then
       START_INDEX=$(cat "$PROGRESS_INDEX_FILE")
@@ -126,8 +155,16 @@ sync_tool_entry() {
   # write report header
   op_report_write_header "$EXECUTION_MODE"
 
-  # traverse repo list
-  for ((REPO_INDEX = START_INDEX; REPO_INDEX < REPO_LENGTH; REPO_INDEX++)); do
+
+  # traverse repo list, determine start and end index
+  if [[ -z "$START_INDEX" ]]; then
+    START_INDEX=0
+  fi
+  if [[ -z "$END_INDEX" ]]; then
+    END_INDEX="$REPO_LENGTH"
+  fi
+
+  for ((REPO_INDEX = START_INDEX; REPO_INDEX < END_INDEX; REPO_INDEX++)); do
     REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[${REPO_INDEX}]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
     REPO_URL=$(echo "$REPO_DATA" | jq ".repoUrl" | tr -d '"')

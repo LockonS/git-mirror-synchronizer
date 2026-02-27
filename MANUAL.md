@@ -258,6 +258,9 @@ For downloading releases and avoiding API rate limits:
 |--------|-------|-------------|
 | `-f FILE` | `--config-file FILE` | Specify custom global configuration file (default: `data/config.json`) |
 | `-d FILE` | `--data-file FILE` | Specify repository data file (default: `data/repo.json`) |
+| `-r URL` | `--repo-url URL` | Process a single repository by its URL |
+| `-s INDEX` | `--index-start INDEX` | Start processing from repository index (0-based, inclusive) |
+| `-e INDEX` | `--index-end INDEX` | Stop processing before repository index (0-based, exclusive) |
 | `-m MODE` | `--mode MODE` | Execution mode: `all` (default), `update`, `sync`, `release`, `tag` |
 | `--dry-run` | - | Preview operations without executing |
 | `--continue` | - | Resume processing from the last saved progress index |
@@ -291,6 +294,34 @@ When processing a large list of repositories, the tool saves progress after each
 - On successful completion, the progress file is automatically deleted.
 - `--continue` can be combined with `-m`, `-f`, `-d`, and `--dry-run`.
 - If no saved progress exists, the run starts from the beginning.
+
+### Index Range / Batch Processing
+
+To process a specific range of repositories by their index, use the `-s` and `-e` options:
+
+```bash
+# Start from repository at index 5
+./sync-tool.sh -s 5
+
+# Process only repositories from index 5 to 9 (inclusive)
+./sync-tool.sh -s 5 -e 10
+
+# Process first 10 repositories (index 0 to 9)
+./sync-tool.sh -e 10
+
+# Batch processing: split 100 repos into 4 batches of 25 each
+./sync-tool.sh -s 0 -e 25    # Batch 1
+./sync-tool.sh -s 25 -e 50   # Batch 2
+./sync-tool.sh -s 50 -e 75   # Batch 3
+./sync-tool.sh -s 75 -e 100  # Batch 4
+```
+
+- Index values are **0-based** (first repository is index 0)
+- `-s` (start index) is **inclusive**
+- `-e` (end index) is **exclusive** (processing stops before this index)
+- This is useful for parallelizing large repository lists or processing specific subsets
+- Can be combined with `-m`, `-f`, `-d`, and `--dry-run`
+- Cannot be combined with `--continue` (continue mode takes precedence)
 
 ### Basic Usage
 

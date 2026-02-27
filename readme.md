@@ -162,6 +162,11 @@ repo.json (per-repo) > data/config.json (custom global) > config/config.global.j
 |--------|-------------|
 | `-f, --config-file FILE` | Specify custom global configuration file |
 | `-d, --data-file FILE` | Specify repository data file |
+| `-r, --repo-url URL` | Process a single repository by its URL |
+| `-s, --index-start INDEX` | Start processing from repository index (0-based) |
+| `-e, --index-end INDEX` | Stop processing before repository index (0-based) |
+| `-m, --mode MODE` | Set execution mode: `all`, `update`, `sync`, `release`, `tag` |
+| `--continue` | Resume from last saved progress |
 | `--dry-run` | Preview operations without executing |
 | `-h, --help, help` | Display help manual |
 
