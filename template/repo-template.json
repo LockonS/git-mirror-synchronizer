@@ -22,7 +22,10 @@
     "tag": {
       "storagePath": "/opt/git/git-tag",
       "download": "true",
-      "keptVersionNum": "3"
+      "keptVersionNum": "3",
+      "keptVersionKeywords": [
+        "v1.0"
+      ]
     },
     "mirror": [
       {
