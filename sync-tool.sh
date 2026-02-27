@@ -29,6 +29,8 @@ sync_tool_manual() {
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/config.json"
   echo "       -d,--data-file   file      Specify input data file, default to path-to-script/data/repo.json"
   echo "       -r,--repo-url    url       Process a single repository by its repoUrl"
+  echo "       -s,--start-index index     Start processing from repository index (0-based)"
+  echo "       -e,--end-index   index     Stop processing before repository index (0-based)"
   echo "       -m,--mode        mode      Optional, default to all. [all| update| sync | release | tag]"
   echo "       --continue                 Resume from the last saved progress index"
   echo "       --dry-run                  Enable dry run mode (no actual changes)"
@@ -66,12 +68,12 @@ sync_tool_entry() {
         shift
         shift
         ;;
-      '-s' | '--index-start')
+      '-s' | '--start-index')
         START_INDEX=${2}
         shift
         shift
         ;;
-      '-e' | '--index-end')
+      '-e' | '--end-index')
         END_INDEX=${2}
         shift
         shift

@@ -259,8 +259,8 @@ For downloading releases and avoiding API rate limits:
 | `-f FILE` | `--config-file FILE` | Specify custom global configuration file (default: `data/config.json`) |
 | `-d FILE` | `--data-file FILE` | Specify repository data file (default: `data/repo.json`) |
 | `-r URL` | `--repo-url URL` | Process a single repository by its URL |
-| `-s INDEX` | `--index-start INDEX` | Start processing from repository index (0-based, inclusive) |
-| `-e INDEX` | `--index-end INDEX` | Stop processing before repository index (0-based, exclusive) |
+| `-s INDEX` | `--start-index INDEX` | Start processing from repository index (0-based, inclusive) |
+| `-e INDEX` | `--end-index INDEX` | Stop processing before repository index (0-based, exclusive) |
 | `-m MODE` | `--mode MODE` | Execution mode: `all` (default), `update`, `sync`, `release`, `tag` |
 | `--dry-run` | - | Preview operations without executing |
 | `--continue` | - | Resume processing from the last saved progress index |
