@@ -488,7 +488,7 @@ op_cleanup_old_versions() {
   fi
 }
 
-# format email body with report content
+# format email body with report content (HTML rich text)
 op_format_email_body() {
   local EXECUTION_MODE="${1:-}"
   local REPORT_TOTAL="${2:-0}"
@@ -498,51 +498,144 @@ op_format_email_body() {
   
   local TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
   local HOSTNAME=$(hostname)
+  local SUCCESS_RATE="N/A"
   
-  # Build formatted email body
-  local EMAIL_BODY=""
-  EMAIL_BODY+="╔════════════════════════════════════════════════════════════╗\n"
-  EMAIL_BODY+="║          Git Mirror Synchronizer - Sync Report             ║\n"
-  EMAIL_BODY+="╚════════════════════════════════════════════════════════════╝\n\n"
-  
-  EMAIL_BODY+="┌─ Execution Summary ─────────────────────────────────────────┐\n"
-  EMAIL_BODY+="│ Timestamp: ${TIMESTAMP}\n"
-  EMAIL_BODY+="│ Hostname:  ${HOSTNAME}\n"
-  EMAIL_BODY+="│ Mode:      ${EXECUTION_MODE}\n"
-  EMAIL_BODY+="└─────────────────────────────────────────────────────────────┘\n\n"
-  
-  EMAIL_BODY+="┌─ Statistics ────────────────────────────────────────────────┐\n"
-  EMAIL_BODY+="│ Total Repositories:   ${REPORT_TOTAL}\n"
-  EMAIL_BODY+="│ Successful Syncs:     ${REPORT_SUCCESS}\n"
-  EMAIL_BODY+="│ Failed Syncs:         ${REPORT_FAILED}\n"
-  EMAIL_BODY+="│ Success Rate:         "
   if [[ ${REPORT_TOTAL} -gt 0 ]]; then
-    local SUCCESS_RATE=$((REPORT_SUCCESS * 100 / REPORT_TOTAL))
-    EMAIL_BODY+="${SUCCESS_RATE}%"
-  else
-    EMAIL_BODY+="N/A"
+    SUCCESS_RATE=$((REPORT_SUCCESS * 100 / REPORT_TOTAL))%
   fi
-  EMAIL_BODY+="\n"
-  EMAIL_BODY+="└─────────────────────────────────────────────────────────────┘\n\n"
+  
+  # Build HTML email body
+  local EMAIL_BODY=""
+  EMAIL_BODY+="<!DOCTYPE html>\n"
+  EMAIL_BODY+="<html lang=\"en\">\n"
+  EMAIL_BODY+="<head>\n"
+  EMAIL_BODY+="  <meta charset=\"UTF-8\">\n"
+  EMAIL_BODY+="  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+  EMAIL_BODY+="  <title>Git Mirror Sync Report</title>\n"
+  EMAIL_BODY+="  <style>\n"
+  EMAIL_BODY+="    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 20px; }\n"
+  EMAIL_BODY+="    .container { max-width: 800px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }\n"
+  EMAIL_BODY+="    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }\n"
+  EMAIL_BODY+="    .header h1 { margin: 0; font-size: 28px; font-weight: 600; }\n"
+  EMAIL_BODY+="    .header p { margin: 8px 0 0 0; font-size: 14px; opacity: 0.9; }\n"
+  EMAIL_BODY+="    .content { padding: 30px; }\n"
+  EMAIL_BODY+="    .section { margin-bottom: 28px; }\n"
+  EMAIL_BODY+="    .section-title { font-size: 16px; font-weight: 600; color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 15px; }\n"
+  EMAIL_BODY+="    .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }\n"
+  EMAIL_BODY+="    .info-label { font-weight: 500; color: #555; }\n"
+  EMAIL_BODY+="    .info-value { color: #333; font-family: 'Courier New', monospace; }\n"
+  EMAIL_BODY+="    .stats-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n"
+  EMAIL_BODY+="    .stats-table th { background-color: #667eea; color: white; padding: 12px; text-align: left; font-weight: 600; }\n"
+  EMAIL_BODY+="    .stats-table td { padding: 12px; border-bottom: 1px solid #eee; }\n"
+  EMAIL_BODY+="    .stats-table tr:nth-child(even) { background-color: #f9f9f9; }\n"
+  EMAIL_BODY+="    .stat-value { font-size: 20px; font-weight: 600; }\n"
+  EMAIL_BODY+="    .stat-success { color: #28a745; }\n"
+  EMAIL_BODY+="    .stat-failed { color: #dc3545; }\n"
+  EMAIL_BODY+="    .stat-total { color: #667eea; }\n"
+  EMAIL_BODY+="    .report-item { padding: 10px; margin: 8px 0; background-color: #f9f9f9; border-left: 4px solid #667eea; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12px; }\n"
+  EMAIL_BODY+="    .status-pass { border-left-color: #28a745; }\n"
+  EMAIL_BODY+="    .status-fail { border-left-color: #dc3545; }\n"
+  EMAIL_BODY+="    .notes { background-color: #e8f4f8; border-left: 4px solid #17a2b8; padding: 15px; border-radius: 4px; margin: 15px 0; }\n"
+  EMAIL_BODY+="    .notes .icon { font-size: 20px; margin-right: 10px; }\n"
+  EMAIL_BODY+="    .footer { background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; }\n"
+  EMAIL_BODY+="  </style>\n"
+  EMAIL_BODY+="</head>\n"
+  EMAIL_BODY+="<body>\n"
+  EMAIL_BODY+="  <div class=\"container\">\n"
+  EMAIL_BODY+="    <div class=\"header\">\n"
+  EMAIL_BODY+="      <h1>Git Mirror Synchronizer</h1>\n"
+  EMAIL_BODY+="      <p>Sync Report</p>\n"
+  EMAIL_BODY+="    </div>\n"
+  EMAIL_BODY+="    <div class=\"content\">\n"
+  EMAIL_BODY+="      <div class=\"section\">\n"
+  EMAIL_BODY+="        <div class=\"section-title\">Execution Summary</div>\n"
+  EMAIL_BODY+="        <div class=\"info-row\">\n"
+  EMAIL_BODY+="          <span class=\"info-label\">Timestamp:</span>\n"
+  EMAIL_BODY+="          <span class=\"info-value\">${TIMESTAMP}</span>\n"
+  EMAIL_BODY+="        </div>\n"
+  EMAIL_BODY+="        <div class=\"info-row\">\n"
+  EMAIL_BODY+="          <span class=\"info-label\">Hostname:</span>\n"
+  EMAIL_BODY+="          <span class=\"info-value\">${HOSTNAME}</span>\n"
+  EMAIL_BODY+="        </div>\n"
+  EMAIL_BODY+="        <div class=\"info-row\" style=\"border-bottom: none;\">\n"
+  EMAIL_BODY+="          <span class=\"info-label\">Mode:</span>\n"
+  EMAIL_BODY+="          <span class=\"info-value\">${EXECUTION_MODE}</span>\n"
+  EMAIL_BODY+="        </div>\n"
+  EMAIL_BODY+="      </div>\n"
+  EMAIL_BODY+="      <div class=\"section\">\n"
+  EMAIL_BODY+="        <div class=\"section-title\">Statistics</div>\n"
+  EMAIL_BODY+="        <table class=\"stats-table\">\n"
+  EMAIL_BODY+="          <thead>\n"
+  EMAIL_BODY+="            <tr>\n"
+  EMAIL_BODY+="              <th>Metric</th>\n"
+  EMAIL_BODY+="              <th>Count</th>\n"
+  EMAIL_BODY+="            </tr>\n"
+  EMAIL_BODY+="          </thead>\n"
+  EMAIL_BODY+="          <tbody>\n"
+  EMAIL_BODY+="            <tr>\n"
+  EMAIL_BODY+="              <td>Total Repositories</td>\n"
+  EMAIL_BODY+="              <td><span class=\"stat-value stat-total\">${REPORT_TOTAL}</span></td>\n"
+  EMAIL_BODY+="            </tr>\n"
+  EMAIL_BODY+="            <tr>\n"
+  EMAIL_BODY+="              <td>Successful Syncs</td>\n"
+  EMAIL_BODY+="              <td><span class=\"stat-value stat-success\">${REPORT_SUCCESS}</span></td>\n"
+  EMAIL_BODY+="            </tr>\n"
+  EMAIL_BODY+="            <tr>\n"
+  EMAIL_BODY+="              <td>Failed Syncs</td>\n"
+  EMAIL_BODY+="              <td><span class=\"stat-value stat-failed\">${REPORT_FAILED}</span></td>\n"
+  EMAIL_BODY+="            </tr>\n"
+  EMAIL_BODY+="            <tr>\n"
+  EMAIL_BODY+="              <td>Success Rate</td>\n"
+  EMAIL_BODY+="              <td><span class=\"stat-value stat-total\">${SUCCESS_RATE}</span></td>\n"
+  EMAIL_BODY+="            </tr>\n"
+  EMAIL_BODY+="          </tbody>\n"
+  EMAIL_BODY+="        </table>\n"
+  EMAIL_BODY+="      </div>\n"
   
   # Add detailed report if available
   if [[ -f "$REPORT_FILE" && -s "$REPORT_FILE" ]]; then
-    EMAIL_BODY+="┌─ Detailed Report ───────────────────────────────────────────┐\n"
+    EMAIL_BODY+="      <div class=\"section\">\n"
+    EMAIL_BODY+="        <div class=\"section-title\">Detailed Report</div>\n"
     while IFS= read -r line; do
-      EMAIL_BODY+="│ ${line}\n"
+      # Escape HTML special characters
+      line="${line//&/&amp;}"
+      line="${line//</&lt;}"
+      line="${line//>/&gt;}"
+      
+      # Determine status class based on PASS/FAIL
+      if [[ "$line" == *"PASS"* ]]; then
+        EMAIL_BODY+="        <div class=\"report-item status-pass\">${line}</div>\n"
+      elif [[ "$line" == *"FAIL"* ]]; then
+        EMAIL_BODY+="        <div class=\"report-item status-fail\">${line}</div>\n"
+      else
+        EMAIL_BODY+="        <div class=\"report-item\">${line}</div>\n"
+      fi
     done < "$REPORT_FILE"
-    EMAIL_BODY+="└─────────────────────────────────────────────────────────────┘\n\n"
+    EMAIL_BODY+="      </div>\n"
   fi
   
-  EMAIL_BODY+="┌─ Notes ─────────────────────────────────────────────────────┐\n"
+  EMAIL_BODY+="      <div class=\"section\">\n"
+  EMAIL_BODY+="        <div class=\"notes\">\n"
   if [[ ${REPORT_FAILED} -eq 0 ]]; then
-    EMAIL_BODY+="│ ✓ All syncs completed successfully!\n"
+    EMAIL_BODY+="          <div style=\"display: flex; align-items: center;\">\n"
+    EMAIL_BODY+="            <span class=\"icon\">✓</span>\n"
+    EMAIL_BODY+="            <span style=\"color: #28a745; font-weight: 500;\">All syncs completed successfully!</span>\n"
+    EMAIL_BODY+="          </div>\n"
   else
-    EMAIL_BODY+="│ ⚠ Some syncs failed. Please review the detailed report.\n"
+    EMAIL_BODY+="          <div style=\"display: flex; align-items: center;\">\n"
+    EMAIL_BODY+="            <span class=\"icon\">⚠</span>\n"
+    EMAIL_BODY+="            <span style=\"color: #dc3545; font-weight: 500;\">Some syncs failed. Please review the detailed report.</span>\n"
+    EMAIL_BODY+="          </div>\n"
   fi
-  EMAIL_BODY+="└─────────────────────────────────────────────────────────────┘\n\n"
-  
-  EMAIL_BODY+="This is an automated message from Git Mirror Synchronizer."
+  EMAIL_BODY+="        </div>\n"
+  EMAIL_BODY+="      </div>\n"
+  EMAIL_BODY+="    </div>\n"
+  EMAIL_BODY+="    <div class=\"footer\">\n"
+  EMAIL_BODY+="      <p>This is an automated message from Git Mirror Synchronizer. Please do not reply to this email.</p>\n"
+  EMAIL_BODY+="    </div>\n"
+  EMAIL_BODY+="  </div>\n"
+  EMAIL_BODY+="</body>\n"
+  EMAIL_BODY+="</html>"
   
   echo -e "$EMAIL_BODY"
 }
@@ -567,11 +660,12 @@ op_send_email() {
 
   # Send email using sendmail command
   if command -v sendmail &> /dev/null; then
-    # Construct email with proper headers
+    # Construct email with proper headers for HTML rich text
     local EMAIL_CONTENT="From: ${SENDER}\n"
     EMAIL_CONTENT+="To: ${RECIPIENT}\n"
     EMAIL_CONTENT+="Subject: ${SUBJECT}\n"
-    EMAIL_CONTENT+="Content-Type: text/plain; charset=UTF-8\n"
+    EMAIL_CONTENT+="MIME-Version: 1.0\n"
+    EMAIL_CONTENT+="Content-Type: text/html; charset=UTF-8\n"
     EMAIL_CONTENT+="Content-Transfer-Encoding: 8bit\n"
     EMAIL_CONTENT+="\n"
     EMAIL_CONTENT+="${BODY}"
