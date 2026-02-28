@@ -358,12 +358,11 @@ op_push_remote_repo() {
 
   # run command
   op_run_tracked_cmd "$CMD_GIT_RESET_HEADER"
-  if [[ $SYNC_MIRROR == "true" ]]; then
-    if [[ "$MIRROR_FORCE_PUSH" == "true" ]]; then
-      op_run_tracked_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"
-    else
-      op_run_tracked_cmd "$CMD_GIT_PUSH_TO_MIRROR"
-    fi
+  if [[ "$MIRROR_FORCE_PUSH" == "true" ]]; then
+    op_prompt_warn "Force push enabled for remote ${MIRROR_REMOTE_REPO_NAME}"
+    op_run_tracked_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"
+  else
+    op_run_tracked_cmd "$CMD_GIT_PUSH_TO_MIRROR"
   fi
 }
 

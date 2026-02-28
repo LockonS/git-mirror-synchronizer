@@ -105,42 +105,42 @@ Below is a fully annotated entry. Every field except `repoUrl` is optional.
 
 ```javascript
 [
-  {
-    "repoUrl": "https://github.com/user/repository.git",    // (required) upstream URL
-    "identifier": "user/repository",                        // custom ID used in storage paths (default: derived from repoUrl)
-    "catalog": "category/subcategory",                      // sub-folder grouping inside the storage root
-    "repo": {
-      "storagePath": "/opt/git/git-repo",                   // where bare clones are stored
-      "sync": "true"                                        // clone/fetch the repo and push to mirrors
-    },
-    "release": {
-      "storagePath": "/opt/git/git-release",                // where release assets are saved
-      "download": "true",                                   // download GitHub release assets
-      "keptVersionNum": "3",                                // number of latest releases to keep (older ones are pruned)
-      "excludeKeywords": [
-        "windows",
-        "arm64"
-      ],                                                    // skip assets whose filename contains any of these strings
-      "keptVersionKeywords": [
-        "v1.0"
-      ]                                                     // always keep releases matching these strings, regardless of keptVersionNum
-    },
-    "tag": {
-      "storagePath": "/opt/git/git-tag",                    // where tag archives are saved
-      "download": "true",                                   // download tag source archives
-      "keptVersionNum": "3",                                // number of latest tags to keep
-      "keptVersionKeywords": [
-        "v1.0"
-      ]                                                     // always keep tags matching these strings
-    },
-    "mirror": [
-      {
-        "name": "gitlab",                                   // label for logging
-        "repoUrl": "git@gitlab.example.com:mirror/repository.git",      // push destination
-        "forcePush": "false"                                // use --force on push (not implemented yet)
-      }
-    ]
-  }
+    {
+        "repoUrl": "https://github.com/user/repository.git",    // (required) upstream URL
+        "identifier": "user/repository",                        // custom ID used in storage paths (default: derived from repoUrl)
+        "catalog": "category/subcategory",                      // sub-folder grouping inside the storage root
+        "repo": {
+            "storagePath": "/opt/git/git-repo",                   // where bare clones are stored
+            "sync": "true"                                        // clone/fetch the repo and push to mirrors
+        },
+        "release": {
+            "storagePath": "/opt/git/git-release",                // where release assets are saved
+            "download": "true",                                   // download GitHub release assets
+            "keptVersionNum": "3",                                // number of latest releases to keep (older ones are pruned)
+            "excludeKeywords": [
+                "windows",
+                "arm64"
+            ],                                                    // skip assets whose filename contains any of these strings
+            "keptVersionKeywords": [
+                "v1.0"
+            ]                                                     // always keep releases matching these strings, regardless of keptVersionNum
+        },
+        "tag": {
+            "storagePath": "/opt/git/git-tag",                    // where tag archives are saved
+            "download": "true",                                   // download tag source archives
+            "keptVersionNum": "3",                                // number of latest tags to keep
+            "keptVersionKeywords": [
+                "v1.0"
+            ]                                                     // always keep tags matching these strings
+        },
+        "mirror": [
+            {
+                "name": "gitlab",                                   // label for logging
+                "repoUrl": "git@gitlab.example.com:mirror/repository.git",      // push destination
+                "forcePush": "false"                                // use --force on push
+            }
+        ]
+    }
 ]
 ```
 
