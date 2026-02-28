@@ -1,147 +1,174 @@
 ## Git Mirror Synchronizer
 
-📖 **[Complete Usage Manual](MANUAL.md)** - Comprehensive guide with examples, troubleshooting, and advanced configuration
-
-- This is a shell script for automating the repetitive work of tracking repositories and syncing them to mirror destinations.
-- **Principle**: What this script does is straightforward:
-    1. Clones or updates local repositories from upstream sources
-    2. Pushes updates to configured mirror repositories
-    3. Optionally downloads GitHub release artifacts and tags
+A shell script that automates tracking upstream repositories and syncing them to mirror destinations — clone, update,
+push, and optionally download GitHub releases and tags.
 
 > **Scenario**  
-> I've got a self-hosted git server and need to back up repositories from GitHub while keeping them up-to-date automatically. A simple shell script triggered by crontab is enough to do the job. As the tracking list grows, this script keeps everything neat and organized.  
-> I'd be happy if this script also helps others save the trouble.
+> I've got a self-hosted git server and need to back up repositories from GitHub while keeping them up-to-date
+> automatically. A simple shell script triggered by crontab does the job. As the tracking list grows, this script keeps
+> everything neat and organized.
+
+📖 **[Complete Usage Manual](MANUAL.md)** — detailed reference, advanced configuration, and troubleshooting
+
+---
+
+### Prerequisites
+
+**jq** is required to parse JSON configuration.
+
+```shell
+# Debian / Ubuntu
+sudo apt-get install jq git curl zsh
+# RHEL / Fedora
+sudo dnf install jq git curl zsh
+# macOS
+brew install jq git curl
+```
+
+---
 
 ### Quick Start
 
-#### Prerequisites
+#### 1. Prepare directories
 
-- **jq** is required to parse JSON configuration. Reference [Here](https://stedolan.github.io/jq/).
-
-    ```shell
-    # For Debian based distros like Ubuntu
-    $ sudo apt-get install jq git curl zsh
-    # For RHEL based distros 
-    $ sudo dnf install jq git curl zsh
-    # For macOS
-    $ brew install jq git curl
-    ```
-
-#### Setup
-
-1. **Basic Setup:**
-
-- Create necessary directories:
-  ```bash
-  mkdir -p data/github log temp
-  ```
-
-- If using default storage paths, prepare directories:
-  ```bash
-  sudo mkdir -p /opt/git/{git-repo,git-release,git-tag}
-  sudo chown -R $USER:$USER /opt/git
-  ```
-
-2. **Configuration:**
-
-- Copy the example configuration:
-  ```bash
-  cp template/repo-example.json data/repo.json
-  ```
-
-- Edit `data/repo.json` with your repositories (see [Configuration Format](#configuration-format) below)
-
-3. **GitHub Access Token (Recommended):**
-
-- Generate a token at GitHub Settings → Developer settings → Personal access tokens
-- Save it:
-  ```bash
-  echo "your_github_token_here" > data/github/github-access-token
-  chmod 600 data/github/github-access-token
-  ```
-
-#### Usage
-
-**Run the synchronization:**
-```shell
-$ ./sync-tool.sh
+```bash
+mkdir -p data/github log temp
+# example directory on Linux; adjust as needed
+sudo mkdir -p /opt/git/{git-repo,git-release,git-tag}
+sudo chown -R $USER:$USER /opt/git
 ```
 
-**Preview operations without executing:**
-```shell
-$ ./sync-tool.sh --dry-run
-```
+#### 2. Create a minimal repository list
 
-**Use custom configuration files:**
-```shell
-$ ./sync-tool.sh -f /path/to/config.json -d /path/to/repo.json
-```
-
-**Setup automated daily sync with cron:**
-```shell
-# Edit crontab
-$ crontab -e
-
-# Add line to run at 2:00 AM daily
-0 2 * * * cd /path/to/git-mirror-synchronizer && ./sync-tool.sh 2>&1 | tee -a ~/.git-mirror-sync/git-mirror-sync.log
-```
-
-### Configuration Format
-
-The tool uses a three-tier configuration system:
-
-```
-repo.json (per-repo) > data/config.json (custom global) > config/config.global.json (default global)
-```
-
-**Repository Configuration (`data/repo.json`):**
+Create `data/repo.json` with the single required field — `repoUrl`:
 
 ```json
 [
   {
-    "repoUrl": "https://github.com/user/repository.git",
-    "identifier": "user/repository",
-    "catalog": "category/subcategory",
+    "repoUrl": "https://github.com/user/repository.git"
+  }
+]
+```
+
+That's enough to clone and locally mirror the repository using the default settings defined in
+`config/config.global.json`.
+
+#### 3. Run
+
+```bash
+./sync-tool.sh
+```
+
+Preview what would happen without making any changes:
+
+```bash
+./sync-tool.sh --dry-run
+```
+
+---
+
+### Configuration
+
+The tool resolves each setting through a three-tier hierarchy — per-repo values override global custom values, which
+override the built-in defaults:
+
+```
+data/repo.json  (per-repo)
+  └─▶  data/config.json  (optional custom global)
+         └─▶  config/config.global.json  (built-in defaults)
+```
+
+#### Built-in defaults (`config/config.global.json`)
+
+```json
+{
+  "repo": {
+    "storagePath": "/opt/git/git-repo",
+    "sync": "true"
+  },
+  "release": {
+    "storagePath": "/opt/git/git-release",
+    "download": "true",
+    "keptVersionNum": "5"
+  },
+  "tag": {
+    "storagePath": "/opt/git/git-tag",
+    "download": "true",
+    "keptVersionNum": "5"
+  }
+}
+```
+
+#### Per-repo configuration (`data/repo.json`)
+
+Below is a fully annotated entry. Every field except `repoUrl` is optional.
+
+```javascript
+[
+  {
+    "repoUrl": "https://github.com/user/repository.git",    // (required) upstream URL
+    "identifier": "user/repository",                        // custom ID used in storage paths (default: derived from repoUrl)
+    "catalog": "category/subcategory",                      // sub-folder grouping inside the storage root
     "repo": {
-      "storagePath": "/opt/git/git-repo",
-      "sync": "true"
+      "storagePath": "/opt/git/git-repo",                   // where bare clones are stored
+      "sync": "true"                                        // clone/fetch the repo and push to mirrors
     },
     "release": {
-      "storagePath": "/opt/git/git-release",
-      "download": "true",
-      "keptVersionNum": "3",
-      "excludeKeywords": ["windows", "arm64"],
-      "keptVersionKeywords": ["v1.0"]
+      "storagePath": "/opt/git/git-release",                // where release assets are saved
+      "download": "true",                                   // download GitHub release assets
+      "keptVersionNum": "3",                                // number of latest releases to keep (older ones are pruned)
+      "excludeKeywords": [
+        "windows",
+        "arm64"
+      ],                                                    // skip assets whose filename contains any of these strings
+      "keptVersionKeywords": [
+        "v1.0"
+      ]                                                     // always keep releases matching these strings, regardless of keptVersionNum
     },
     "tag": {
-      "storagePath": "/opt/git/git-tag",
-      "download": "true",
-      "keptVersionNum": "3"
+      "storagePath": "/opt/git/git-tag",                    // where tag archives are saved
+      "download": "true",                                   // download tag source archives
+      "keptVersionNum": "3",                                // number of latest tags to keep
+      "keptVersionKeywords": [
+        "v1.0"
+      ]                                                     // always keep tags matching these strings
     },
     "mirror": [
       {
-        "name": "gitlab",
-        "repoUrl": "git@gitlab.example.com:mirror/user/repository.git",
-        "forcePush": "false"
+        "name": "gitlab",                                   // label for logging
+        "repoUrl": "git@gitlab.example.com:mirror/repository.git",      // push destination
+        "forcePush": "false"                                // use --force on push (not implemented yet)
       }
     ]
   }
 ]
 ```
 
-**Key Fields:**
+**Field reference:**
 
-- **repoUrl** (required): Upstream repository URL
-- **identifier** (optional): Custom identifier (default: extracted from repoUrl)
-- **catalog** (optional): Category path for organization (e.g., "tools/automation")
-- **repo.sync**: Enable repository sync ("true"/"false")
-- **release.download**: Enable release downloads ("true"/"false")
-- **release.excludeKeywords**: Array of keywords to exclude assets from downloads (e.g. `["windows", "arm64"]`)
-- **release.keptVersionKeywords**: Array of version names to always keep, regardless of `keptVersionNum` (e.g. `["v1.0"]`)
-- **tag.download**: Enable tag downloads ("true"/"false")
-- **mirror**: Array of mirror destinations
+| Field                         | Required | Default                | Description                                       |
+|-------------------------------|----------|------------------------|---------------------------------------------------|
+| `repoUrl`                     | ✅        | —                      | Upstream repository URL                           |
+| `identifier`                  | —        | Derived from `repoUrl` | ID used in local storage paths                    |
+| `catalog`                     | —        | `""`                   | Sub-folder under `storagePath` for grouping repos |
+| `repo.storagePath`            | —        | `/opt/git/git-repo`    | Root directory for bare clones                    |
+| `repo.sync`                   | —        | `"true"`               | Enable clone/fetch and mirror push                |
+| `release.storagePath`         | —        | `/opt/git/git-release` | Root directory for release asset downloads        |
+| `release.download`            | —        | `"true"`               | Enable GitHub release downloads                   |
+| `release.keptVersionNum`      | —        | `"5"`                  | How many latest releases to retain                |
+| `release.excludeKeywords`     | —        | `[]`                   | Skip assets whose filename contains any keyword   |
+| `release.keptVersionKeywords` | —        | `[]`                   | Releases pinned regardless of `keptVersionNum`    |
+| `tag.storagePath`             | —        | `/opt/git/git-tag`     | Root directory for tag archive downloads          |
+| `tag.download`                | —        | `"true"`               | Enable tag archive downloads                      |
+| `tag.keptVersionNum`          | —        | `"5"`                  | How many latest tag archives to retain            |
+| `tag.keptVersionKeywords`     | —        | `[]`                   | Tags pinned regardless of `keptVersionNum`        |
+| `mirror[].name`               | —        | —                      | Label for the mirror (used in logs)               |
+| `mirror[].repoUrl`            | —        | —                      | Push destination URL                              |
+| `mirror[].forcePush`          | —        | `"false"`              | Pass `--force` when pushing                       |
 
-**Global Configuration (`data/config.json` - optional):**
+#### Custom global config (`data/config.json`) — optional
+
+Override defaults for all repositories without touching individual entries:
 
 ```json
 {
@@ -156,63 +183,31 @@ repo.json (per-repo) > data/config.json (custom global) > config/config.global.j
 }
 ```
 
-### Command Line Options
+#### GitHub access token (recommended)
 
-| Option | Description |
-|--------|-------------|
-| `-f, --config-file FILE` | Specify custom global configuration file |
-| `-d, --data-file FILE` | Specify repository data file |
-| `-r, --repo-url URL` | Process a single repository by its URL |
-| `-s, --start-index INDEX` | Start processing from repository index (0-based) |
-| `-e, --end-index INDEX` | Stop processing before repository index (0-based) |
-| `-m, --mode MODE` | Set execution mode: `all`, `update`, `sync`, `release`, `tag` |
-| `--continue` | Resume from last saved progress |
-| `--dry-run` | Preview operations without executing |
-| `-h, --help, help` | Display help manual |
+Required for private repositories and avoids API rate limits when downloading releases/tags.
 
-### Directory Structure
-
-**Project Structure:**
-```
-git-mirror-synchronizer/
-├── sync-tool.sh          # Main executable
-├── MANUAL.md             # Comprehensive documentation
-├── component/            # Core components
-│   ├── common.sh         # Common utilities
-│   ├── environment.sh    # Environment variables
-│   └── operation.sh      # Core operations
-├── config/               # Configuration files
-│   └── config.global.json
-├── data/                 # User data (gitignored)
-│   ├── config.json       # Optional custom global config
-│   ├── repo.json         # Repository list
-│   └── github/
-│       └── github-access-token
-├── module/               # Platform-specific modules
-│   ├── module-github.sh
-│   ├── module-gitlab.sh
-│   └── module-gitee.sh
-└── template/             # Configuration examples
-    └── repo-example.json
+```bash
+echo "your_github_token_here" > data/github/github-access-token
+chmod 600 data/github/github-access-token
 ```
 
-**Storage Structure (default):**
-```
-/opt/git/
-├── git-repo/             # Cloned repositories
-│   └── {catalog}/
-│       └── {identifier}/
-├── git-release/          # Release artifacts
-│   └── {identifier}/
-│       └── {version}/
-└── git-tag/              # Tag archives
-    └── {identifier}/
-        └── {tag}/
-```
+---
 
 ### Examples
 
-**Example 1: Basic Repository Sync**
+**Minimal — just sync a repo locally:**
+
+```json
+[
+  {
+    "repoUrl": "https://github.com/torvalds/linux.git"
+  }
+]
+```
+
+**Sync and push to a mirror:**
+
 ```json
 [
   {
@@ -228,7 +223,8 @@ git-mirror-synchronizer/
 ]
 ```
 
-**Example 2: Download Releases Only**
+**Download releases only (no repo sync):**
+
 ```json
 [
   {
@@ -239,13 +235,17 @@ git-mirror-synchronizer/
     },
     "release": {
       "download": "true",
-      "excludeKeywords": ["darwin", "windows"]
+      "excludeKeywords": [
+        "darwin",
+        "windows"
+      ]
     }
   }
 ]
 ```
 
-**Example 3: Multiple Mirrors**
+**Multiple mirrors:**
+
 ```json
 [
   {
@@ -265,35 +265,70 @@ git-mirror-synchronizer/
 ]
 ```
 
-### Troubleshooting
+---
 
-**Common Issues:**
+### Command Line Options
 
-1. **Config file not found**: Ensure `data/repo.json` exists
-2. **GitHub API rate limit**: Add GitHub access token at `data/github/github-access-token`
-3. **Permission denied**: Check write permissions for storage paths
-4. **Mirror push failed**: Verify SSH keys and remote access
+| Option                    | Description                                               |
+|---------------------------|-----------------------------------------------------------|
+| `-f, --config-file FILE`  | Custom global configuration file                          |
+| `-d, --data-file FILE`    | Repository data file                                      |
+| `-r, --repo-url URL`      | Process a single repository by URL                        |
+| `-s, --start-index INDEX` | Start from repository index (0-based)                     |
+| `-e, --end-index INDEX`   | Stop before repository index (0-based)                    |
+| `-m, --mode MODE`         | Execution mode: `all`, `update`, `sync`, `release`, `tag` |
+| `--continue`              | Resume from last saved progress                           |
+| `--dry-run`               | Preview operations without executing                      |
+| `-h, --help`              | Display help manual                                       |
 
-See [MANUAL.md](MANUAL.md) for detailed troubleshooting guide.
+---
+
+### Automation
+
+Run at 2:00 AM daily with cron:
+
+```shell
+crontab -e
+# add:
+0 2 * * * cd /path/to/git-mirror-synchronizer && ./sync-tool.sh 2>&1 | tee -a ~/.git-mirror-sync/sync.log
+```
+
+---
+
+### Directory Structure
+
+```
+git-mirror-synchronizer/
+├── sync-tool.sh       # main script
+├── component/         # core logic (common, environment, operation)
+├── config/            # built-in defaults
+├── data/              # your config and credentials (gitignored)
+│   ├── repo.json      # repository list
+│   ├── config.json    # optional global overrides
+│   └── github/github-access-token
+├── module/            # platform modules (github, gitlab, gitee)
+└── template/          # example configuration
+
+/opt/git/              # default storage root
+├── git-repo/{catalog}/{identifier}/   # bare clones
+├── git-release/{identifier}/{version}/
+└── git-tag/{identifier}/{tag}/
+```
+
+---
 
 ### Features
 
 - ✅ Multi-repository management
 - ✅ Multiple mirror destinations per repository
-- ✅ GitHub release and tag downloads
-- ✅ Flexible configuration hierarchy with inheritance
-- ✅ Dry-run mode for testing
+- ✅ GitHub release and tag downloads with keyword filtering
+- ✅ Three-tier configuration hierarchy with per-repo overrides
+- ✅ Dry-run mode
 - ✅ Cross-platform (Linux and macOS)
-- ✅ Automated scheduling via cron
-- ✅ Selective sync and download per repository
-- ✅ Release asset filtering by keywords
+- ✅ Cron-friendly with progress resume (`--continue`)
 
-### Documentation
-
-- **[MANUAL.md](MANUAL.md)** - Complete usage manual with examples and troubleshooting
-- **[template/repo-example.json](template/repo-example.json)** - Configuration example
-- **[config/config.global.json](config/config.global.json)** - Global defaults
+---
 
 ### License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE) for details.
