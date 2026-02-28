@@ -490,9 +490,10 @@ op_cleanup_old_versions() {
 
 # send email notification using sendmail
 op_send_email() {
-  local RECIPIENT="${1:-}"
-  local SUBJECT="${2:-}"
-  local BODY="${3:-}"
+  local SENDER="${1:-}"
+  local RECIPIENT="${2:-}"
+  local SUBJECT="${3:-}"
+  local BODY="${4:-}"
 
   # Skip if email is empty or not configured
   if [[ -z "$RECIPIENT" ]]; then
@@ -500,19 +501,25 @@ op_send_email() {
     return 0
   fi
 
+  # Use default sender if not provided
+  if [[ -z "$SENDER" && -n "$RECIPIENT" ]]; then
+    SENDER="noreply@git-mirror-synchronizer"
+  fi
+
   # Send email using sendmail command
   if command -v sendmail &> /dev/null; then
     # Construct email with proper headers
-    local EMAIL_CONTENT="To: ${RECIPIENT}\n"
+    local EMAIL_CONTENT="From: ${SENDER}\n"
+    EMAIL_CONTENT+="To: ${RECIPIENT}\n"
     EMAIL_CONTENT+="Subject: ${SUBJECT}\n"
     EMAIL_CONTENT+="\n"
-    EMAIL_CONTENT+="${BODY}"
+    # EMAIL_CONTENT+="${BODY}"
     
     echo -e "$EMAIL_CONTENT" | sendmail -t
     if [[ $? -eq 0 ]]; then
-      op_prompt_info "Email sent to: $RECIPIENT"
+      op_prompt_info "Email sent from: $SENDER to: $RECIPIENT"
     else
-      op_prompt_error "Failed to send email to: $RECIPIENT"
+      op_prompt_error "Failed to send email from: $SENDER to: $RECIPIENT"
       return 1
     fi
   else

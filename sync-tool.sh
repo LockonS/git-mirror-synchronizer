@@ -205,12 +205,14 @@ sync_tool_entry() {
   op_report_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED"
 
   # send email notification with report
-  local NOTIFICATION_EMAIL=""
+  local NOTIFICATION_SENDER=""
+  local NOTIFICATION_RECEIVER=""
   if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
-    NOTIFICATION_EMAIL=$(jq -r '.notification.email // ""' "$RUNTIME_CONFIG_FILE")
+    NOTIFICATION_SENDER=$(jq -r '.notification.email.sender // ""' "$RUNTIME_CONFIG_FILE")
+    NOTIFICATION_RECEIVER=$(jq -r '.notification.email.receiver // ""' "$RUNTIME_CONFIG_FILE")
   fi
   
-  if [[ -n "$NOTIFICATION_EMAIL" ]]; then
+  if [[ -n "$NOTIFICATION_RECEIVER" ]]; then
     local EMAIL_SUBJECT="Git Mirror Sync Report - ${EXECUTION_MODE} mode"
     local EMAIL_BODY="Sync Report Summary\n\n"
     EMAIL_BODY+="Mode: ${EXECUTION_MODE}\n"
@@ -222,7 +224,7 @@ sync_tool_entry() {
       EMAIL_BODY+="$(cat "$REPORT_FILE")"
     fi
     
-    op_send_email "$NOTIFICATION_EMAIL" "$EMAIL_SUBJECT" "$EMAIL_BODY"
+    op_send_email "$NOTIFICATION_SENDER" "$NOTIFICATION_RECEIVER" "$EMAIL_SUBJECT" "$EMAIL_BODY"
   fi
 
   # clear progress file on successful completion
