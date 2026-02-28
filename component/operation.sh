@@ -488,7 +488,7 @@ op_cleanup_old_versions() {
   fi
 }
 
-# send email notification
+# send email notification using sendmail
 op_send_email() {
   local RECIPIENT="${1:-}"
   local SUBJECT="${2:-}"
@@ -500,9 +500,15 @@ op_send_email() {
     return 0
   fi
 
-  # Send email using mail command (can be extended to use sendmail or other tools)
-  if command -v mail &> /dev/null; then
-    echo -e "$BODY" | mail -s "$SUBJECT" "$RECIPIENT"
+  # Send email using sendmail command
+  if command -v sendmail &> /dev/null; then
+    # Construct email with proper headers
+    local EMAIL_CONTENT="To: ${RECIPIENT}\n"
+    EMAIL_CONTENT+="Subject: ${SUBJECT}\n"
+    EMAIL_CONTENT+="\n"
+    EMAIL_CONTENT+="${BODY}"
+    
+    echo -e "$EMAIL_CONTENT" | sendmail -t
     if [[ $? -eq 0 ]]; then
       op_prompt_info "Email sent to: $RECIPIENT"
     else
@@ -510,7 +516,7 @@ op_send_email() {
       return 1
     fi
   else
-    op_prompt_warn "mail command not found, email notification skipped"
+    op_prompt_warn "sendmail command not found, email notification skipped"
     return 1
   fi
 }
