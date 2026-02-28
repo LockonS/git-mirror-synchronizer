@@ -12,5 +12,8 @@
     "storagePath": "/opt/git/git-tag",
     "download": "true",
     "keptVersionNum": "5"
+  },
+  "notification": {
+    "email": ""
   }
 }

@@ -95,6 +95,9 @@ data/repo.json  (per-repo)
     "storagePath": "/opt/git/git-tag",
     "download": "true",
     "keptVersionNum": "5"
+  },
+  "notification": {
+    "email": ""
   }
 }
 ```
@@ -165,6 +168,7 @@ Below is a fully annotated entry. Every field except `repoUrl` is optional.
 | `mirror[].name`               | —        | —                      | Label for the mirror (used in logs)               |
 | `mirror[].repoUrl`            | —        | —                      | Push destination URL                              |
 | `mirror[].forcePush`          | —        | `"false"`              | Pass `--force` when pushing                       |
+| `notification.email`          | —        | `""`                   | Email address for sync result notifications       |
 
 #### Custom global config (`data/config.json`) — optional
 
@@ -179,6 +183,9 @@ Override defaults for all repositories without touching individual entries:
   "release": {
     "storagePath": "/custom/path/releases",
     "download": "false"
+  },
+  "notification": {
+    "email": "admin@example.com"
   }
 }
 ```
@@ -323,6 +330,7 @@ git-mirror-synchronizer/
 - ✅ Multiple mirror destinations per repository
 - ✅ GitHub release and tag downloads with keyword filtering
 - ✅ Three-tier configuration hierarchy with per-repo overrides
+- ✅ Email notifications on sync completion
 - ✅ Dry-run mode
 - ✅ Cross-platform (Linux and macOS)
 - ✅ Cron-friendly with progress resume (`--continue`)
