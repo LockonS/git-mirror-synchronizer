@@ -488,6 +488,65 @@ op_cleanup_old_versions() {
   fi
 }
 
+# format email body with report content
+op_format_email_body() {
+  local EXECUTION_MODE="${1:-}"
+  local REPORT_TOTAL="${2:-0}"
+  local REPORT_SUCCESS="${3:-0}"
+  local REPORT_FAILED="${4:-0}"
+  local REPORT_FILE="${5:-}"
+  
+  local TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+  local HOSTNAME=$(hostname)
+  
+  # Build formatted email body
+  local EMAIL_BODY=""
+  EMAIL_BODY+="╔════════════════════════════════════════════════════════════╗\n"
+  EMAIL_BODY+="║          Git Mirror Synchronizer - Sync Report             ║\n"
+  EMAIL_BODY+="╚════════════════════════════════════════════════════════════╝\n\n"
+  
+  EMAIL_BODY+="┌─ Execution Summary ─────────────────────────────────────────┐\n"
+  EMAIL_BODY+="│ Timestamp: ${TIMESTAMP}\n"
+  EMAIL_BODY+="│ Hostname:  ${HOSTNAME}\n"
+  EMAIL_BODY+="│ Mode:      ${EXECUTION_MODE}\n"
+  EMAIL_BODY+="└─────────────────────────────────────────────────────────────┘\n\n"
+  
+  EMAIL_BODY+="┌─ Statistics ────────────────────────────────────────────────┐\n"
+  EMAIL_BODY+="│ Total Repositories:   ${REPORT_TOTAL}\n"
+  EMAIL_BODY+="│ Successful Syncs:     ${REPORT_SUCCESS}\n"
+  EMAIL_BODY+="│ Failed Syncs:         ${REPORT_FAILED}\n"
+  EMAIL_BODY+="│ Success Rate:         "
+  if [[ ${REPORT_TOTAL} -gt 0 ]]; then
+    local SUCCESS_RATE=$((REPORT_SUCCESS * 100 / REPORT_TOTAL))
+    EMAIL_BODY+="${SUCCESS_RATE}%"
+  else
+    EMAIL_BODY+="N/A"
+  fi
+  EMAIL_BODY+="\n"
+  EMAIL_BODY+="└─────────────────────────────────────────────────────────────┘\n\n"
+  
+  # Add detailed report if available
+  if [[ -f "$REPORT_FILE" && -s "$REPORT_FILE" ]]; then
+    EMAIL_BODY+="┌─ Detailed Report ───────────────────────────────────────────┐\n"
+    while IFS= read -r line; do
+      EMAIL_BODY+="│ ${line}\n"
+    done < "$REPORT_FILE"
+    EMAIL_BODY+="└─────────────────────────────────────────────────────────────┘\n\n"
+  fi
+  
+  EMAIL_BODY+="┌─ Notes ─────────────────────────────────────────────────────┐\n"
+  if [[ ${REPORT_FAILED} -eq 0 ]]; then
+    EMAIL_BODY+="│ ✓ All syncs completed successfully!\n"
+  else
+    EMAIL_BODY+="│ ⚠ Some syncs failed. Please review the detailed report.\n"
+  fi
+  EMAIL_BODY+="└─────────────────────────────────────────────────────────────┘\n\n"
+  
+  EMAIL_BODY+="This is an automated message from Git Mirror Synchronizer."
+  
+  echo -e "$EMAIL_BODY"
+}
+
 # send email notification using sendmail
 op_send_email() {
   local SENDER="${1:-}"
@@ -512,6 +571,8 @@ op_send_email() {
     local EMAIL_CONTENT="From: ${SENDER}\n"
     EMAIL_CONTENT+="To: ${RECIPIENT}\n"
     EMAIL_CONTENT+="Subject: ${SUBJECT}\n"
+    EMAIL_CONTENT+="Content-Type: text/plain; charset=UTF-8\n"
+    EMAIL_CONTENT+="Content-Transfer-Encoding: 8bit\n"
     EMAIL_CONTENT+="\n"
     EMAIL_CONTENT+="${BODY}"
     
@@ -525,6 +586,31 @@ op_send_email() {
   else
     op_prompt_warn "sendmail command not found, email notification skipped"
     return 1
+  fi
+}
+
+# send email notification with formatted report
+op_send_email_notification() {
+  local RUNTIME_CONFIG_FILE="${1:-}"
+  local EXECUTION_MODE="${2:-}"
+  local REPORT_TOTAL="${3:-0}"
+  local REPORT_SUCCESS="${4:-0}"
+  local REPORT_FAILED="${5:-0}"
+  local REPORT_FILE="${6:-}"
+
+  local NOTIFICATION_SENDER=""
+  local NOTIFICATION_RECEIVER=""
+  
+  if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
+    NOTIFICATION_SENDER=$(jq -r '.notification.email.sender // ""' "$RUNTIME_CONFIG_FILE")
+    NOTIFICATION_RECEIVER=$(jq -r '.notification.email.receiver // ""' "$RUNTIME_CONFIG_FILE")
+  fi
+  
+  if [[ -n "$NOTIFICATION_RECEIVER" ]]; then
+    local EMAIL_SUBJECT="Git Mirror Sync Report"
+    local EMAIL_BODY=$(op_format_email_body "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE")
+    
+    op_send_email "$NOTIFICATION_SENDER" "$NOTIFICATION_RECEIVER" "$EMAIL_SUBJECT" "$EMAIL_BODY"
   fi
 }
 
