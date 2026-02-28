@@ -21,6 +21,7 @@ source "$COMPONENT_PATH/operation.sh"
 source "$MODULE_PATH/module-github.sh"
 source "$MODULE_PATH/module-gitlab.sh"
 source "$MODULE_PATH/module-gitee.sh"
+source "$MODULE_PATH/module-general.sh"
 
 # function manual
 sync_tool_manual() {

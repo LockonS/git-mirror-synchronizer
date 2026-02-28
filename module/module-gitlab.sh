@@ -126,4 +126,4 @@ op_handle_gitlab_repo() {
   op_handle_repo "$@" op_gitlab_download_release op_gitlab_download_tag
 }
 
-op_load_gitlab_access_token
+#op_load_gitlab_access_token

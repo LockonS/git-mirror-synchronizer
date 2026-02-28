@@ -126,4 +126,4 @@ op_handle_gitee_repo() {
   op_handle_repo "$@" op_gitee_download_release op_gitee_download_tag
 }
 
-op_load_gitee_access_token
+#op_load_gitee_access_token

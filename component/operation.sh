@@ -241,11 +241,11 @@ op_load_access_token() {
 #   $3 - download_tag function name      (e.g. op_github_download_tag)
 op_handle_repo() {
   local REPO_RUNTIME_CONFIG FN_DOWNLOAD_RELEASE FN_DOWNLOAD_TAG
-  local REPO_URL REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD
   REPO_RUNTIME_CONFIG="${1}"
   FN_DOWNLOAD_RELEASE="${2}"
   FN_DOWNLOAD_TAG="${3}"
 
+  local REPO_URL REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD
   REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
   REPO_SYNC=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.sync" | tr -d '"')
   REPO_RELEASE_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.download" | tr -d '"')
@@ -285,13 +285,12 @@ op_dispatch_repo() {
 
   if [[ "$REPO_URL" == *"github.com"* ]]; then
     op_handle_github_repo "$REPO_RUNTIME_CONFIG"
-  elif [[ "$REPO_URL" == *"gitlab.com"* ]]; then
+  elif [[ "$REPO_URL" == *"gitlab.com"* ]] || [[ "$REPO_URL" == *"gitlab."* ]]; then
     op_handle_gitlab_repo "$REPO_RUNTIME_CONFIG"
   elif [[ "$REPO_URL" == *"gitee.com"* ]]; then
     op_handle_gitee_repo "$REPO_RUNTIME_CONFIG"
   else
-    op_prompt_warn "Unknown repo provider for: ${REPO_URL}"
-    REPO_PROCESS_STATUS="failed"
+    op_handle_general_repo "$REPO_RUNTIME_CONFIG"
   fi
 }
 
