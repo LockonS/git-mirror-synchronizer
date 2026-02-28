@@ -213,9 +213,8 @@ sync_tool_entry() {
   fi
   
   if [[ -n "$NOTIFICATION_RECEIVER" ]]; then
-    local EMAIL_SUBJECT="Git Mirror Sync Report - ${EXECUTION_MODE} mode"
-    local EMAIL_BODY="Sync Report Summary\n\n"
-    EMAIL_BODY+="Mode: ${EXECUTION_MODE}\n"
+    local EMAIL_SUBJECT="Git Mirror Sync Report"
+    local EMAIL_BODY+="Mode: ${EXECUTION_MODE}\n"
     EMAIL_BODY+="Total: ${REPORT_TOTAL}\n"
     EMAIL_BODY+="Success: ${REPORT_SUCCESS}\n"
     EMAIL_BODY+="Failed: ${REPORT_FAILED}\n"
