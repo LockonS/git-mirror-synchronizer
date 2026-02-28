@@ -164,7 +164,7 @@ sync_tool_entry() {
   fi
 
   # write report header
-  op_report_write_header "$EXECUTION_MODE" "$START_INDEX" "$END_INDEX"
+  op_report_write_header "$EXECUTION_MODE" "$START_INDEX" "$END_INDEX" "$FILTER_REPO_URL"
 
   for ((REPO_INDEX = START_INDEX; REPO_INDEX < END_INDEX; REPO_INDEX++)); do
     REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[${REPO_INDEX}]")

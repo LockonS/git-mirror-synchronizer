@@ -110,16 +110,19 @@ op_report_write_header() {
   local EXECUTION_MODE="${1:-all}"
   local START_INDEX="${2:-0}"
   local END_INDEX="${3:-}"
+  local FILTER_REPO_URL="${4:-}"
   echo -e "\n${BOLD}${WHITE}=== Sync Report ===${NC}"
   echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
   echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
-  echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
+  [[ -z "$FILTER_REPO_URL" ]] && echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
+  [[ -n "$FILTER_REPO_URL" ]] && echo -e "Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
   [[ -z "$REPORT_FILE" ]] && return 0
   {
     echo -e "${BOLD}${WHITE}=== Sync Report ===${NC}"
     echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
     echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
-    echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
+    [[ -z "$FILTER_REPO_URL" ]] && echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
+    [[ -n "$FILTER_REPO_URL" ]] && echo -e "Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
     echo ""
   } > "$REPORT_FILE"
 }
