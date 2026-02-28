@@ -290,8 +290,6 @@ op_dispatch_repo() {
     op_handle_github_repo "$REPO_RUNTIME_CONFIG"
   elif [[ "$REPO_URL" == *"gitlab.com"* ]] || [[ "$REPO_URL" == *"gitlab."* ]]; then
     op_handle_gitlab_repo "$REPO_RUNTIME_CONFIG"
-  elif [[ "$REPO_URL" == *"gitee.com"* ]]; then
-    op_handle_gitee_repo "$REPO_RUNTIME_CONFIG"
   else
     op_handle_general_repo "$REPO_RUNTIME_CONFIG"
   fi
