@@ -101,7 +101,7 @@ sync_tool_entry() {
       # valid mode
       ;;
     *)
-      echo "${RED}Invalid execution mode: ${EXECUTION_MODE}${NC}"
+      echo -e "${RED}Invalid execution mode: ${EXECUTION_MODE}${NC}"
       echo "Valid modes: all, update, sync, release, tag"
       return 1
       ;;
@@ -111,8 +111,7 @@ sync_tool_entry() {
   if [[ -n "$START_INDEX" ]]; then
     # Remove all digits - if result is non-empty, it contains non-digit characters
     if [[ -n "${START_INDEX//[0-9]/}" ]]; then
-      echo "${RED}Invalid START_INDEX: ${START_INDEX}${NC}"
-      echo "START_INDEX must be a non-negative integer (>= 0)"
+      op_prompt_error "Invalid START_INDEX: ${START_INDEX}, must be a non-negative integer (>= 0)"
       return 1
     fi
   fi
@@ -121,8 +120,7 @@ sync_tool_entry() {
   if [[ -n "$END_INDEX" ]]; then
     # Remove all digits - if result is non-empty, it contains non-digit characters
     if [[ -n "${END_INDEX//[0-9]/}" ]]; then
-      echo "${RED}Invalid END_INDEX: ${END_INDEX}${NC}"
-      echo "END_INDEX must be a non-negative integer (>= 0)"
+      op_prompt_error "Invalid END_INDEX: ${END_INDEX}, must be a non-negative integer (>= 0)"
       return 1
     fi
   fi
@@ -156,7 +154,6 @@ sync_tool_entry() {
   # report counters
   local REPORT_TOTAL=0 REPORT_SUCCESS=0 REPORT_FAILED=0
 
-
   # traverse repo list, determine start and end index
   if [[ -z "$START_INDEX" ]]; then
     START_INDEX=0
@@ -181,8 +178,10 @@ sync_tool_entry() {
     REPO_MATCHED="true"
     [[ -z "$FILTER_REPO_URL" ]] && echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
 
-    op_handle_repo_data "$REPO_DATA"
+    # dispatch repo data to operation module and get processing result
+    op_dispatch_repo "$REPO_DATA"
 
+    # update report counters and write report result for current repo
     REPORT_TOTAL=$((REPORT_TOTAL + 1))
     if [[ "$REPO_PROCESS_STATUS" == "failed" ]]; then
       REPORT_FAILED=$((REPORT_FAILED + 1))
@@ -208,7 +207,7 @@ sync_tool_entry() {
   [[ -f "$PROGRESS_INDEX_FILE" ]] && rm -f "$PROGRESS_INDEX_FILE"
 }
 
-op_runtime_prepare
+op_initialization
 
 # Pipe all output from sync_tool_entry to both console and log file
 sync_tool_entry "$@" 2>&1 | tee -a "$LOG_FILE"

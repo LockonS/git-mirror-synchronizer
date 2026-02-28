@@ -5,14 +5,7 @@ export GITHUB_ACCESS_TOKEN_FILE="$DATA_PATH/github/github-access-token"
 export GITHUB_ACCESS_TOKEN
 
 op_load_github_access_token() {
-  if [[ -f "$GITHUB_ACCESS_TOKEN_FILE" ]]; then
-    GITHUB_ACCESS_TOKEN=$(cat "$GITHUB_ACCESS_TOKEN_FILE")
-  fi
-
-  if [[ -z "$GITHUB_ACCESS_TOKEN" ]]; then
-    op_prompt_warn "GitHub access token file not found or empty. You may encounter rate limit issues."
-    sleep 2
-  fi
+  op_load_access_token "$GITHUB_ACCESS_TOKEN_FILE" GITHUB_ACCESS_TOKEN "GitHub"
 }
 
 # extract repo name from repo data
@@ -285,33 +278,7 @@ op_github_download_release_asset() {
 
 # handle GitHub repository operations (sync, release, tag downloads)
 op_handle_github_repo() {
-  local REPO_RUNTIME_CONFIG REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD REPO_IDENTIFIER REPO_CATALOG
-  REPO_RUNTIME_CONFIG="$*"
-  REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
-  REPO_SYNC=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.sync" | tr -d '"')
-  REPO_RELEASE_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.download" | tr -d '"')
-  REPO_TAG_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.download" | tr -d '"')
-  REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
-  REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
-
-  if [[ "$REPO_SYNC" == "true" ]]; then
-    op_process_git_repo "$REPO_RUNTIME_CONFIG"
-  fi
-
-  if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
-    RELEASE_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.storagePath" | tr -d '"')
-    RELEASE_EXCLUDE_KEYWORDS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.release.excludeKeywords // [] | join(",")')
-    RELEASE_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.keptVersionNum" | tr -d '"')
-    RELEASE_KEPT_VERSIONS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.release.keptVersionKeywords // [] | join(",")')
-    op_github_download_release "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS" "$REPO_IDENTIFIER" "$RELEASE_KEPT_VERSION_NUM" "$REPO_CATALOG" "$RELEASE_KEPT_VERSIONS"
-  fi
-
-  if [[ "$REPO_TAG_DOWNLOAD" == "true" ]]; then
-    TAG_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.storagePath" | tr -d '"')
-    TAG_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.keptVersionNum" | tr -d '"')
-    TAG_KEPT_VERSIONS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.tag.keptVersionKeywords // [] | join(",")')
-    op_github_download_tag "$REPO_URL" "$TAG_STORAGE_PATH" "$REPO_IDENTIFIER" "$TAG_KEPT_VERSION_NUM" "$REPO_CATALOG" "$TAG_KEPT_VERSIONS"
-  fi
+  op_handle_repo "$@" op_github_download_release op_github_download_tag
 }
 
 op_load_github_access_token

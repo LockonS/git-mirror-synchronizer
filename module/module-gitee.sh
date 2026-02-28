@@ -1,5 +1,128 @@
 #!/usr/bin/env zsh
 
-op_handle_gitee_repo(){
-    op_prompt_warn "Gitee repo handler is not implemented yet."
+# function and variables in this file is gitee exclusive
+export GITEE_ACCESS_TOKEN_FILE="$DATA_PATH/gitee/gitee-access-token"
+export GITEE_ACCESS_TOKEN
+
+op_load_gitee_access_token() {
+  op_load_access_token "$GITEE_ACCESS_TOKEN_FILE" GITEE_ACCESS_TOKEN "Gitee"
 }
+
+# extract repo identifier from repo url
+op_gitee_extract_repo_identifier() {
+  local REPO_URL="${1}"
+
+  # extract repo creator and name from url
+  REPO_AUTHOR=$(echo "$REPO_URL" | awk -F/ '{print $(NF-1)}')
+  REPO_NAME=$(basename "$REPO_URL" | sed 's/\.git$//')
+  REPO_IDENTIFIER="${REPO_AUTHOR}/${REPO_NAME}"
+  echo "$REPO_IDENTIFIER"
+}
+
+# check Gitee API response for errors
+# Parameters: JSON_DATA, ARTIFACT_TYPE ("release" or "tags")
+# Returns: 0 if no error, 1 for errors, 2 for "Not Found" (caller should exit gracefully)
+op_gitee_check_api_response() {
+  local JSON_DATA ARTIFACT_TYPE RESPONSE_MESSAGE
+  JSON_DATA="${1}"
+  ARTIFACT_TYPE="${2}"
+
+  RESPONSE_MESSAGE=$(printf "%s" "$JSON_DATA" | jq -r 'select(type=="object" and has("message")) | .message')
+  if [[ -n "$RESPONSE_MESSAGE" && "$RESPONSE_MESSAGE" != "null" ]]; then
+    case "$RESPONSE_MESSAGE" in
+      *"Not Found"* | *"404"*)
+        op_prompt_info "No ${ARTIFACT_TYPE} artifact found"
+        return 2
+        ;;
+      *)
+        op_prompt_warn "Gitee API response: ${BOLD}${RESPONSE_MESSAGE}${NC}"
+        return 1
+        ;;
+    esac
+  fi
+  return 0
+}
+
+# validate Gitee API response and handle status codes
+# Parameters: JSON_DATA, ARTIFACT_TYPE ("release" or "tags")
+# Returns: 0 for success (continue), 200 for "Not Found" (parent should return 0), other codes for errors
+op_gitee_validate_response() {
+  local JSON_DATA ARTIFACT_TYPE
+  JSON_DATA="${1}"
+  ARTIFACT_TYPE="${2}"
+
+  op_gitee_check_api_response "$JSON_DATA" "$ARTIFACT_TYPE"
+  local API_STATUS=$?
+
+  if [[ $API_STATUS -eq 2 ]]; then
+    return 200
+  elif [[ $API_STATUS -ne 0 ]]; then
+    return $API_STATUS
+  fi
+
+  return 0
+}
+
+op_gitee_download_release() {
+  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
+  REPO_URL="${1}"
+  REPO_RELEASE_STORAGE="${2}"
+  EXCLUDE_KEYWORDS="${3}"
+  CUSTOM_IDENTIFIER="${4}"
+  KEPT_VERSION_NUM="${5}"
+  REPO_CATALOG="${6}"
+  KEPT_VERSIONS="${7}"
+
+  # use custom identifier if provided, otherwise extract from URL
+  if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
+    REPO_IDENTIFIER="$CUSTOM_IDENTIFIER"
+  else
+    REPO_IDENTIFIER=$(op_gitee_extract_repo_identifier "$REPO_URL")
+  fi
+
+  echo -e ""
+  op_prompt_checkpoint "Downloading release assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+
+  # TODO: implement Gitee release download
+  op_prompt_warn "Gitee release download is not implemented yet."
+}
+
+op_gitee_download_release_asset() {
+  local RELEASE_STORAGE_PATH ASSET_DATA EXCLUDE_KEYWORDS
+  RELEASE_STORAGE_PATH="${1}"
+  ASSET_DATA="${2}"
+  EXCLUDE_KEYWORDS="${3}"
+
+  # TODO: implement Gitee release asset download
+  op_prompt_warn "Gitee release asset download is not implemented yet."
+}
+
+op_gitee_download_tag() {
+  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
+  REPO_URL="${1}"
+  REPO_RELEASE_STORAGE="${2}"
+  CUSTOM_IDENTIFIER="${3}"
+  KEPT_VERSION_NUM="${4}"
+  REPO_CATALOG="${5}"
+  KEPT_VERSIONS="${6}"
+
+  # use custom identifier if provided, otherwise extract from URL
+  if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
+    REPO_IDENTIFIER="$CUSTOM_IDENTIFIER"
+  else
+    REPO_IDENTIFIER=$(op_gitee_extract_repo_identifier "$REPO_URL")
+  fi
+
+  echo -e ""
+  op_prompt_checkpoint "Downloading tag assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+
+  # TODO: implement Gitee tag download
+  op_prompt_warn "Gitee tag download is not implemented yet."
+}
+
+# handle Gitee repository operations (sync, release, tag downloads)
+op_handle_gitee_repo() {
+  op_handle_repo "$@" op_gitee_download_release op_gitee_download_tag
+}
+
+op_load_gitee_access_token

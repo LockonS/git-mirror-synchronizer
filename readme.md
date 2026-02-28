@@ -4,7 +4,7 @@ A shell script that automates tracking upstream repositories and syncing them to
 push, and optionally download GitHub releases and tags.
 
 > **Scenario**  
-> I've got a self-hosted git server and need to back up repositories from GitHub while keeping them up-to-date
+> I've got a self-hosted git server and need to back up repositories from GitHub (or other sources) while keeping them up-to-date
 > automatically. A simple shell script triggered by crontab does the job. As the tracking list grows, this script keeps
 > everything neat and organized.
 

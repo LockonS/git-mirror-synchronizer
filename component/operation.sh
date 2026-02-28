@@ -1,6 +1,5 @@
 #!/usr/bin/env zsh
 
-
 op_prompt_checkpoint() {
   echo -e "${BLUE}==>${NC} ${WHITE}${1}${NC}"
 }
@@ -69,7 +68,7 @@ op_get_os_type() {
   fi
 }
 
-op_runtime_prepare() {
+op_initialization() {
   echo -e "\n--------------------- $OPERATION_TIME ---------------------\n"
   mkdir -p "$TEMP_PATH"
   mkdir -p "$LOG_PATH"
@@ -90,6 +89,19 @@ op_runtime_prepare() {
     op_prompt_debug "Global config file: ${GREEN}${GLOBAL_CONFIG_FILE}${NC}"
     cp "$GLOBAL_CONFIG_FILE" "$DEFAULT_CONFIG_FILE"
   fi
+}
+
+# load setting from global config file and in-line parameter
+op_load_runtime_config() {
+  local RUNTIME_CONFIG_FILE GLOBAL_RUNTIME_CONFIG
+  RUNTIME_CONFIG_FILE="${1}"
+  GLOBAL_RUNTIME_CONFIG=$(jq -s '.[0] * .[1]' "$GLOBAL_CONFIG_FILE" "$RUNTIME_CONFIG_FILE")
+
+  if [[ "$LOG_LEVEL" == "debug" ]]; then
+    op_prompt_debug "Loading runtime config: '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}'"
+  fi
+
+  echo "$GLOBAL_RUNTIME_CONFIG" >"${TEMP_PATH}/global.temp.json"
 }
 
 # write the report file header
@@ -153,19 +165,6 @@ op_report_summary() {
   fi
 }
 
-# load setting from global config file and in-line parameter
-op_load_runtime_config() {
-  local RUNTIME_CONFIG_FILE GLOBAL_RUNTIME_CONFIG
-  RUNTIME_CONFIG_FILE="${1}"
-  GLOBAL_RUNTIME_CONFIG=$(jq -s '.[0] * .[1]' "$GLOBAL_CONFIG_FILE" "$RUNTIME_CONFIG_FILE")
-
-  if [[ "$LOG_LEVEL" == "debug" ]]; then
-    op_prompt_debug "Loading runtime config: '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}'"
-  fi
-
-  echo "$GLOBAL_RUNTIME_CONFIG" >"${TEMP_PATH}/global.temp.json"
-}
-
 # apply execution mode to override global configuration
 op_apply_execution_mode() {
   local EXECUTION_MODE="${1}"
@@ -214,8 +213,69 @@ op_load_repo_config() {
   echo "$REPO_RUNTIME_CONFIG"
 }
 
+# load an access token from a file into a named variable
+# Parameters:
+#   $1 - token file path   (e.g. "$DATA_PATH/github/github-access-token")
+#   $2 - variable name     (e.g. GITHUB_ACCESS_TOKEN)
+#   $3 - platform label    (e.g. "GitHub")
+op_load_access_token() {
+  local TOKEN_FILE="${1}"
+  local VAR_NAME="${2}"
+  local PLATFORM="${3}"
+
+  if [[ -f "$TOKEN_FILE" ]]; then
+    eval "${VAR_NAME}=$(cat "$TOKEN_FILE")"
+  fi
+
+  if [[ -z "$(eval echo "\$$VAR_NAME")" ]]; then
+    op_prompt_warn "${PLATFORM} access token file not found or empty. You may encounter rate limit issues."
+    sleep 2
+  fi
+}
+
+# common handler for all platform repo operations (sync, release downloads, tag downloads)
+# Parameters:
+#   $1 - REPO_RUNTIME_CONFIG (JSON string)
+#   $2 - download_release function name  (e.g. op_github_download_release)
+#   $3 - download_tag function name      (e.g. op_github_download_tag)
+op_handle_repo() {
+  local REPO_RUNTIME_CONFIG FN_DOWNLOAD_RELEASE FN_DOWNLOAD_TAG
+  local REPO_URL REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD REPO_IDENTIFIER REPO_CATALOG
+  REPO_RUNTIME_CONFIG="${1}"
+  FN_DOWNLOAD_RELEASE="${2}"
+  FN_DOWNLOAD_TAG="${3}"
+
+  REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
+  REPO_SYNC=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.sync" | tr -d '"')
+  REPO_RELEASE_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.download" | tr -d '"')
+  REPO_TAG_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.download" | tr -d '"')
+  REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
+  REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
+
+  if [[ "$REPO_SYNC" == "true" ]]; then
+    op_sync_repo "$REPO_RUNTIME_CONFIG"
+  fi
+
+  if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
+    local RELEASE_STORAGE_PATH RELEASE_EXCLUDE_KEYWORDS RELEASE_KEPT_VERSION_NUM RELEASE_KEPT_VERSIONS
+    RELEASE_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.storagePath" | tr -d '"')
+    RELEASE_EXCLUDE_KEYWORDS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.release.excludeKeywords // [] | join(",")')
+    RELEASE_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.keptVersionNum" | tr -d '"')
+    RELEASE_KEPT_VERSIONS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.release.keptVersionKeywords // [] | join(",")')
+    "$FN_DOWNLOAD_RELEASE" "$REPO_URL" "$RELEASE_STORAGE_PATH" "$RELEASE_EXCLUDE_KEYWORDS" "$REPO_IDENTIFIER" "$RELEASE_KEPT_VERSION_NUM" "$REPO_CATALOG" "$RELEASE_KEPT_VERSIONS"
+  fi
+
+  if [[ "$REPO_TAG_DOWNLOAD" == "true" ]]; then
+    local TAG_STORAGE_PATH TAG_KEPT_VERSION_NUM TAG_KEPT_VERSIONS
+    TAG_STORAGE_PATH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.storagePath" | tr -d '"')
+    TAG_KEPT_VERSION_NUM=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.keptVersionNum" | tr -d '"')
+    TAG_KEPT_VERSIONS=$(echo "$REPO_RUNTIME_CONFIG" | jq -r '.tag.keptVersionKeywords // [] | join(",")')
+    "$FN_DOWNLOAD_TAG" "$REPO_URL" "$TAG_STORAGE_PATH" "$REPO_IDENTIFIER" "$TAG_KEPT_VERSION_NUM" "$REPO_CATALOG" "$TAG_KEPT_VERSIONS"
+  fi
+}
+
 # handle config data for a single repo
-op_handle_repo_data() {
+op_dispatch_repo() {
   local REPO_DATA REPO_RUNTIME_CONFIG REPO_URL
   REPO_DATA="$*"
   REPO_RUNTIME_CONFIG=$(op_load_repo_config "$REPO_DATA")
@@ -236,10 +296,11 @@ op_handle_repo_data() {
   fi
 }
 
-# initialize local repo
-op_process_git_repo() {
+# shellcheck disable=SC2124
+# setup repo sync setting and sync repo to local storage, then optionally sync to mirror repos if configured
+op_sync_repo() {
   local REPO_RUNTIME_CONFIG REPO_NAME REPO_IDENTIFIER REPO_CATALOG REPO_STORAGE_PATH REPO_LOCAL_PATH
-  REPO_RUNTIME_CONFIG="$*"
+  REPO_RUNTIME_CONFIG="$@"
   REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
   REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
   REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
