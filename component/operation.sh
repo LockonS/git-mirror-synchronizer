@@ -24,7 +24,7 @@ op_prompt_error() {
 }
 
 op_run_cmd() {
-  local CMD_STR=${*}
+  local CMD_STR="${*}"
 
   if [[ "$DRY_RUN" != true ]]; then
     if ! zsh -c "$CMD_STR"; then
@@ -45,11 +45,11 @@ op_run_tracked_cmd() {
 }
 
 op_run_cmd_with_result() {
-  local CMD_STR=${*}
+  local CMD_STR="${*}"
 
   if [[ "$DRY_RUN" != true ]]; then
-    SYNC_EXEC_STDOUT=$(zsh -c "$CMD_STR")
-    export SYNC_EXEC_STDOUT
+    CMD_EXEC_STDOUT=$(zsh -c "$CMD_STR")
+    export CMD_EXEC_STDOUT
   else
     # print command on console
     echo -e "\n${GREY}${CMD_STR}${NC}\n"
@@ -65,6 +65,7 @@ op_get_os_type() {
     export OS_TYPE="LINUX"
   else
     echo "Unsupported OS, exiting"
+    exit 1
   fi
 }
 
@@ -224,7 +225,7 @@ op_load_access_token() {
   local PLATFORM="${3}"
 
   if [[ -f "$TOKEN_FILE" ]]; then
-    eval "${VAR_NAME}=$(cat "$TOKEN_FILE")"
+    eval "${VAR_NAME}=\"$(cat "$TOKEN_FILE")\""
   fi
 
   if [[ -z "$(eval echo "\$$VAR_NAME")" ]]; then
@@ -240,7 +241,7 @@ op_load_access_token() {
 #   $3 - download_tag function name      (e.g. op_github_download_tag)
 op_handle_repo() {
   local REPO_RUNTIME_CONFIG FN_DOWNLOAD_RELEASE FN_DOWNLOAD_TAG
-  local REPO_URL REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD REPO_IDENTIFIER REPO_CATALOG
+  local REPO_URL REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD
   REPO_RUNTIME_CONFIG="${1}"
   FN_DOWNLOAD_RELEASE="${2}"
   FN_DOWNLOAD_TAG="${3}"
@@ -249,8 +250,6 @@ op_handle_repo() {
   REPO_SYNC=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.sync" | tr -d '"')
   REPO_RELEASE_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.download" | tr -d '"')
   REPO_TAG_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.download" | tr -d '"')
-  REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
-  REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
 
   if [[ "$REPO_SYNC" == "true" ]]; then
     op_sync_repo "$REPO_RUNTIME_CONFIG"
@@ -350,14 +349,14 @@ op_sync_repo() {
   fi
   
   # Check if mirror field exists and is not null
-  MIRROR_EXISTS=$(echo "$REPO_DATA" | jq 'has("mirror")')
+  MIRROR_EXISTS=$(echo "$REPO_RUNTIME_CONFIG" | jq 'has("mirror")')
   if [[ "$MIRROR_EXISTS" != "true" ]]; then
     op_prompt_info "No mirror configuration found, skipping mirror sync"
     return 0
   fi
   
   # Traverse sync mirror remote repo list
-  MIRROR_LENGTH=$(echo "$REPO_DATA" | jq '.mirror | length')
+  MIRROR_LENGTH=$(echo "$REPO_RUNTIME_CONFIG" | jq '.mirror | length')
   # Check if mirror is null or empty
   if [[ "$MIRROR_LENGTH" == "null" ]] || [[ "$MIRROR_LENGTH" == "0" ]] || [[ -z "$MIRROR_LENGTH" ]]; then
     op_prompt_info "Mirror configuration is empty, skipping mirror sync"
@@ -367,9 +366,9 @@ op_sync_repo() {
   local MIRROR_INDEX MIRROR_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_URL MIRROR_FORCE_PUSH
   for ((MIRROR_INDEX = 0; MIRROR_INDEX < MIRROR_LENGTH; MIRROR_INDEX++)); do
     # mirror configuration
-    MIRROR_REMOTE_REPO_NAME=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].name" | tr -d '"')
-    MIRROR_REMOTE_REPO_URL=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].repoUrl" | tr -d '"')
-    MIRROR_FORCE_PUSH=$(echo "$REPO_DATA" | jq ".mirror[$MIRROR_INDEX].forcePush" | tr -d '"')
+    MIRROR_REMOTE_REPO_NAME=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].name" | tr -d '"')
+    MIRROR_REMOTE_REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].repoUrl" | tr -d '"')
+    MIRROR_FORCE_PUSH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].forcePush" | tr -d '"')
     if [[ -z $MIRROR_REMOTE_REPO_NAME ]] || [[ -z $MIRROR_REMOTE_REPO_URL ]]; then
       op_prompt_warn "Mirror repository configuration is not complete, abort this mirror"
       continue

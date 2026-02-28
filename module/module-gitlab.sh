@@ -10,7 +10,8 @@ op_load_gitlab_access_token() {
 
 # extract repo identifier from repo url
 op_gitlab_extract_repo_identifier() {
-  local REPO_URL="${1}"
+  local REPO_URL REPO_AUTHOR REPO_NAME REPO_IDENTIFIER
+  REPO_URL="${1}"
 
   # extract repo creator and name from url
   REPO_AUTHOR=$(echo "$REPO_URL" | awk -F/ '{print $(NF-1)}')
@@ -81,7 +82,7 @@ op_gitlab_download_release() {
   fi
 
   echo -e ""
-  op_prompt_checkpoint "Downloading release assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint "Downloading release assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # TODO: implement GitLab release download
   op_prompt_warn "GitLab release download is not implemented yet."
@@ -114,7 +115,7 @@ op_gitlab_download_tag() {
   fi
 
   echo -e ""
-  op_prompt_checkpoint "Downloading tag assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint "Downloading tag assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # TODO: implement GitLab tag download
   op_prompt_warn "GitLab tag download is not implemented yet."

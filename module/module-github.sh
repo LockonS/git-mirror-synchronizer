@@ -10,7 +10,8 @@ op_load_github_access_token() {
 
 # extract repo name from repo data
 op_github_extract_repo_identifier() {
-  local REPO_URL="${1}"
+  local REPO_URL REPO_AUTHOR REPO_NAME REPO_IDENTIFIER
+  REPO_URL="${1}"
 
   # extract repo creator and name from url
   REPO_AUTHOR=$(echo "$REPO_URL" | awk -F/ '{print $(NF-1)}')
@@ -86,7 +87,7 @@ op_github_download_release() {
   # configuration variables
   local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
   echo -e ""
-  op_prompt_checkpoint "Downloading release assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint "Downloading release assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/releases/latest"
@@ -101,13 +102,13 @@ op_github_download_release() {
   
   op_prompt_debug "${CMD_RETRIEVE_DATA}"
   
-  REPO_RELEASE_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
+  op_run_cmd_with_result "$CMD_RETRIEVE_DATA"
+  REPO_RELEASE_DATA="$CMD_EXEC_STDOUT"
 
   # Check for error message in response (e.g., rate limit or not found)
-  op_github_validate_response "$REPO_RELEASE_DATA" "release" || {
-    local RET=$?
-    [[ $RET -eq 200 ]] && return 0 || return $RET
-  }
+  op_github_validate_response "$REPO_RELEASE_DATA" "release"
+  local RET=$?
+  if [[ $RET -eq 200 ]]; then return 0; elif [[ $RET -ne 0 ]]; then return $RET; fi
 
   # extract release tag name
   RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
@@ -164,7 +165,7 @@ op_github_download_tag() {
   # configuration variables
   local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
   echo -e ""
-  op_prompt_checkpoint "Downloading tags assets for ${NC}${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint "Downloading tags assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
   REPO_TAGS_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/tags"
@@ -179,16 +180,16 @@ op_github_download_tag() {
   
   op_prompt_debug "${CMD_RETRIEVE_DATA}"
   
-  REPO_TAGS_DATA=$(op_run_cmd "$CMD_RETRIEVE_DATA")
+  op_run_cmd_with_result "$CMD_RETRIEVE_DATA"
+  REPO_TAGS_DATA="$CMD_EXEC_STDOUT"
 
   # Check for error message in response (e.g., rate limit or not found)
-  op_github_validate_response "$REPO_TAGS_DATA" "tags" || {
-    local RET=$?
-    [[ $RET -eq 200 ]] && return 0 || return $RET
-  }
+  op_github_validate_response "$REPO_TAGS_DATA" "tags"
+  local RET=$?
+  if [[ $RET -eq 200 ]]; then return 0; elif [[ $RET -ne 0 ]]; then return $RET; fi
 
   # traverse release assets list
-  local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME CMD_DOWNLOAD_ASSET
+  local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME CMD_DOWNLOAD_ASSET ASSET_DOWNLOAD_URL
   ASSET_LENGTH=$(printf "%s" "$REPO_TAGS_DATA" | jq '. | length')
   if [[ "$ASSET_LENGTH" -eq 0 ]]; then
     op_prompt_info "No tags artifact found"
