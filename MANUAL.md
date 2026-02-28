@@ -74,12 +74,12 @@ config/config.global.json  →  data/config.json  →  data/repo.json (per-repo)
   "release": {
     "storagePath": "/opt/git/git-release",
     "download": "true",
-    "keptVersionNum": "3"
+    "keptVersionNum": "5"
   },
   "tag": {
     "storagePath": "/opt/git/git-tag",
     "download": "true",
-    "keptVersionNum": "3"
+    "keptVersionNum": "5"
   }
 }
 ```
@@ -120,12 +120,12 @@ An array of repository objects:
     },
     "release": {
       "download": "true",
-      "keptVersionNum": "3",
+      "keptVersionNum": "5",
       "excludeKeywords": "windows,arm64"
     },
     "tag": {
       "download": "true",
-      "keptVersionNum": "3"
+      "keptVersionNum": "5"
     },
     "mirror": [
       {
