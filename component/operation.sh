@@ -513,7 +513,7 @@ op_send_email() {
     EMAIL_CONTENT+="To: ${RECIPIENT}\n"
     EMAIL_CONTENT+="Subject: ${SUBJECT}\n"
     EMAIL_CONTENT+="\n"
-    # EMAIL_CONTENT+="${BODY}"
+    EMAIL_CONTENT+="${BODY}"
     
     echo -e "$EMAIL_CONTENT" | sendmail -t
     if [[ $? -eq 0 ]]; then

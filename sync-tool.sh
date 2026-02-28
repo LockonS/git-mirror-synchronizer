@@ -220,8 +220,8 @@ sync_tool_entry() {
     EMAIL_BODY+="Success: ${REPORT_SUCCESS}\n"
     EMAIL_BODY+="Failed: ${REPORT_FAILED}\n"
     if [[ -f "$REPORT_FILE" ]]; then
-      EMAIL_BODY+="\nDetailed Report:\n"
-      EMAIL_BODY+="$(cat "$REPORT_FILE")"
+      #EMAIL_BODY+="\nDetailed Report:\n"
+      #EMAIL_BODY+="$(cat "$REPORT_FILE")"
     fi
     
     op_send_email "$NOTIFICATION_SENDER" "$NOTIFICATION_RECEIVER" "$EMAIL_SUBJECT" "$EMAIL_BODY"
