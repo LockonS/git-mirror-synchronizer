@@ -487,3 +487,31 @@ op_cleanup_old_versions() {
     fi
   fi
 }
+
+# send email notification
+op_send_email() {
+  local RECIPIENT="${1:-}"
+  local SUBJECT="${2:-}"
+  local BODY="${3:-}"
+
+  # Skip if email is empty or not configured
+  if [[ -z "$RECIPIENT" ]]; then
+    op_prompt_debug "Email notification skipped: no recipient configured"
+    return 0
+  fi
+
+  # Send email using mail command (can be extended to use sendmail or other tools)
+  if command -v mail &> /dev/null; then
+    echo -e "$BODY" | mail -s "$SUBJECT" "$RECIPIENT"
+    if [[ $? -eq 0 ]]; then
+      op_prompt_info "Email sent to: $RECIPIENT"
+    else
+      op_prompt_error "Failed to send email to: $RECIPIENT"
+      return 1
+    fi
+  else
+    op_prompt_warn "mail command not found, email notification skipped"
+    return 1
+  fi
+}
+
