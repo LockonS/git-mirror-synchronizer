@@ -64,7 +64,7 @@ op_report_summary() {
   local FAILED="${3}"
 
   op_prompt_checkpoint -n "Report task summary"
-  op_prompt_info "Total:    ${WHITE}${TOTAL}${NC}"
+  op_prompt_info "Total:    ${BLUE}${TOTAL}${NC}"
   op_prompt_info "Success:  ${GREEN}${SUCCESS}${NC}"
   if [[ "$FAILED" -eq 0 ]]; then
     op_prompt_info "Failed:   ${WHITE}${FAILED}${NC}"
@@ -76,7 +76,7 @@ op_report_summary() {
     {
       echo ""
       echo -e "${BOLD}${WHITE}=== Task Summary ===${NC}"
-      echo -e "Total:    ${WHITE}${TOTAL}${NC}"
+      echo -e "Total:    ${BLUE}${TOTAL}${NC}"
       echo -e "Success:  ${GREEN}${SUCCESS}${NC}"
       if [[ "$FAILED" -eq 0 ]]; then
         echo -e "Failed:   ${WHITE}${FAILED}${NC}"
