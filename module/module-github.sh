@@ -28,7 +28,7 @@ op_github_check_api_response() {
   JSON_DATA="${1}"
   ARTIFACT_TYPE="${2}"
   
-  RESPONSE_MESSAGE=$(printf "%s" "$JSON_DATA" | jq -r 'select(type=="object" and has("message")) | .message')
+  RESPONSE_MESSAGE=$(jq -r 'select(type=="object" and has("message")) | .message' <<<"$JSON_DATA")
   if [[ -n "$RESPONSE_MESSAGE" && "$RESPONSE_MESSAGE" != "null" ]]; then
     case "$RESPONSE_MESSAGE" in
       *"Not Found"*)
@@ -52,8 +52,6 @@ op_github_validate_response() {
   JSON_DATA="${1}"
   ARTIFACT_TYPE="${2}"
 
-  echo "before op_github_check_api_response"
-  
   op_github_check_api_response "$JSON_DATA" "$ARTIFACT_TYPE"
   local API_STATUS=$?
   
@@ -106,8 +104,6 @@ op_github_download_release() {
   
   op_run_cmd_with_result "$CMD_RETRIEVE_DATA"
   REPO_RELEASE_DATA="$CMD_EXEC_STDOUT"
-
-  echo "CMD_EXEC_STDOUT: $CMD_EXEC_STDOUT"
 
   # Check for error message in response (e.g., rate limit or not found)
   op_github_validate_response "$REPO_RELEASE_DATA" "release"
