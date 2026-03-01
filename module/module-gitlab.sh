@@ -81,8 +81,7 @@ op_gitlab_download_release() {
     REPO_IDENTIFIER=$(op_gitlab_extract_repo_identifier "$REPO_URL")
   fi
 
-  echo -e ""
-  op_prompt_checkpoint "Downloading release assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint -n "Downloading release assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # TODO: implement GitLab release download
   op_prompt_warn "GitLab release download is not implemented yet."
@@ -114,8 +113,7 @@ op_gitlab_download_tag() {
     REPO_IDENTIFIER=$(op_gitlab_extract_repo_identifier "$REPO_URL")
   fi
 
-  echo -e ""
-  op_prompt_checkpoint "Downloading tag assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint -n "Downloading tag assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # TODO: implement GitLab tag download
   op_prompt_warn "GitLab tag download is not implemented yet."

@@ -1,7 +1,19 @@
 #!/usr/bin/env zsh
 
 op_prompt_checkpoint() {
-  echo -e "${BLUE}==>${NC} ${WHITE}${1}${NC}"
+  local MSG NEWLINE_BEFORE ARROW_COLOR
+  ARROW_COLOR="$BLUE"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -n) NEWLINE_BEFORE="true"; shift ;;
+      -c) ARROW_COLOR="$2"; shift 2 ;;
+      *) MSG="$1"; shift ;;
+    esac
+  done
+
+  [[ -n "$NEWLINE_BEFORE" ]] && echo -e ""
+  echo -e "${ARROW_COLOR}==>${NC} ${WHITE}${MSG}${NC}"
 }
 
 op_prompt_debug() {

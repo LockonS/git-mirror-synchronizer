@@ -107,8 +107,7 @@ op_{platform}_download_release() {
     REPO_IDENTIFIER=$(op_{platform}_extract_repo_identifier "$REPO_URL")
   fi
 
-  echo -e ""
-  op_prompt_checkpoint "Downloading release assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint -n "Downloading release assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble auth header if access token is available
   if [[ -n "${PLATFORM}_ACCESS_TOKEN" ]]; then
@@ -173,8 +172,7 @@ op_{platform}_download_tag() {
     REPO_IDENTIFIER=$(op_{platform}_extract_repo_identifier "$REPO_URL")
   fi
 
-  echo -e ""
-  op_prompt_checkpoint "Downloading tag assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint -n "Downloading tag assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble auth header if access token is available
   if [[ -n "${PLATFORM}_ACCESS_TOKEN" ]]; then

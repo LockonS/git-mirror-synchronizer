@@ -86,8 +86,7 @@ op_github_download_release() {
 
   # configuration variables
   local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
-  echo -e ""
-  op_prompt_checkpoint "Downloading release assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint -n "Downloading release assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
   REPO_RELEASE_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/releases/latest"
@@ -164,8 +163,7 @@ op_github_download_tag() {
 
   # configuration variables
   local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
-  echo -e ""
-  op_prompt_checkpoint "Downloading tags assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
+  op_prompt_checkpoint -n "Downloading tags assets for ${BOLD}${GREEN}${REPO_IDENTIFIER}${NC}"
 
   # assemble release data url
   REPO_TAGS_DATA_URL="https://api.github.com/repos/${REPO_IDENTIFIER}/tags"
@@ -248,7 +246,7 @@ op_github_download_release_asset() {
   ASSET_NAME=$(jq -r ".name" <<<"$ASSET_DATA")
   ASSET_DOWNLOAD_URL=$(jq -r ".browser_download_url" <<<"$ASSET_DATA")
 
-  op_prompt_checkpoint "Downloading asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
+  op_prompt_checkpoint -c "$CYAN" "Downloading asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
   mkdir -p "$RELEASE_STORAGE_PATH"
 
   # compare exclude keywords
