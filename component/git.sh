@@ -66,7 +66,11 @@ op_report_summary() {
   op_prompt_checkpoint -n "Report task summary"
   op_prompt_info "Total:    ${WHITE}${TOTAL}${NC}"
   op_prompt_info "Success:  ${GREEN}${SUCCESS}${NC}"
-  op_prompt_info "Failed:   ${RED}${FAILED}${NC}"
+  if [[ "$FAILED" -eq 0 ]]; then
+    op_prompt_info "Failed:   ${WHITE}${FAILED}${NC}"
+  else
+    op_prompt_info "Failed:   ${RED}${FAILED}${NC}"
+  fi
 
   if [[ -n "$REPORT_FILE" ]]; then
     {
@@ -74,7 +78,11 @@ op_report_summary() {
       echo -e "${BOLD}${WHITE}=== Task Summary ===${NC}"
       echo -e "Total:    ${WHITE}${TOTAL}${NC}"
       echo -e "Success:  ${GREEN}${SUCCESS}${NC}"
-      echo -e "Failed:   ${RED}${FAILED}${NC}"
+      if [[ "$FAILED" -eq 0 ]]; then
+        echo -e "Failed:   ${WHITE}${FAILED}${NC}"
+      else
+        echo -e "Failed:   ${RED}${FAILED}${NC}"
+      fi
     } >> "$REPORT_FILE"
 
     op_prompt_checkpoint -n "Save task report"
