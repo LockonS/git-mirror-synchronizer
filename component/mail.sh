@@ -62,7 +62,11 @@ op_format_email_body() {
   
   # Load template and replace placeholders
   local EMAIL_BODY REPORT_FAILED_CLASS
-  [[ ${REPORT_FAILED} -eq 0 ]] && REPORT_FAILED_CLASS="stat-success" || REPORT_FAILED_CLASS="stat-failed"
+  if [[ ${REPORT_FAILED} -eq 0 ]]; then
+    REPORT_FAILED_CLASS="stat-success"
+  else
+    REPORT_FAILED_CLASS="stat-failed"
+  fi
   EMAIL_BODY=$(cat "$EMAIL_TEMPLATE_FILE")
   EMAIL_BODY="${EMAIL_BODY//\{\{TIMESTAMP\}\}/$TIMESTAMP}"
   EMAIL_BODY="${EMAIL_BODY//\{\{HOSTNAME\}\}/$HOSTNAME}"
