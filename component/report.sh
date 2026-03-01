@@ -211,7 +211,6 @@ op_upload_report() {
       op_prompt_info "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
     else
       op_prompt_error "Failed to upload: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
-      return 1
     fi
   done
 }
