@@ -204,12 +204,8 @@ op_upload_report() {
     [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]] && continue
     REMOTE_FILE_PATH+="report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
 
-    op_run_cmd "rclone copyto $REPORT_FILE_PATH $REMOTE_FILE_PATH"
-
-    if [[ "$?" -ne 0 ]]; then
-      op_prompt_info "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
-    else
-      op_prompt_error "Failed to upload: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
-    fi
+    local CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH $REMOTE_FILE_PATH"
+    op_run_cmd "$CMD_UPLOAD_FILE"
+    op_prompt_info "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
   done
 }
