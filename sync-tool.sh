@@ -22,7 +22,6 @@ source "$COMPONENT_PATH/mail.sh"
 # include module
 source "$MODULE_PATH/module-github.sh"
 source "$MODULE_PATH/module-gitlab.sh"
-source "$MODULE_PATH/module-gitee.sh"
 source "$MODULE_PATH/module-general.sh"
 
 # function manual

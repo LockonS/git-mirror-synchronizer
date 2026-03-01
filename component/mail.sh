@@ -110,9 +110,9 @@ op_send_email() {
     
     echo -e "$EMAIL_CONTENT" | sendmail -t
     if [[ $? -eq 0 ]]; then
-      op_prompt_info "Email sent from: $SENDER to: $RECIPIENT"
+      op_prompt_checkpoint "Email sent from: ${GREEN}${SENDER}${NC} to: ${GREEN}${RECIPIENT}${NC}"
     else
-      op_prompt_error "Failed to send email from: $SENDER to: $RECIPIENT"
+      op_prompt_error "Failed to send email from: ${BOLD}${SENDER}${NC} to: ${BOLD}${RECIPIENT}${NC}"
       return 1
     fi
   else
