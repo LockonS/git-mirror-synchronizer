@@ -16,6 +16,8 @@ export REPORT_PATH="$SYNC_TOOL_PATH/report"
 source "$COMPONENT_PATH/common.sh"
 source "$COMPONENT_PATH/environment.sh"
 source "$COMPONENT_PATH/operation.sh"
+source "$COMPONENT_PATH/git.sh"
+source "$COMPONENT_PATH/mail.sh"
 
 # include module
 source "$MODULE_PATH/module-github.sh"
