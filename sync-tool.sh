@@ -9,8 +9,8 @@ export MODULE_PATH="$SYNC_TOOL_PATH/module"
 export DATA_PATH="$SYNC_TOOL_PATH/data"
 export CONFIG_PATH="$SYNC_TOOL_PATH/config"
 export TEMP_PATH="$SYNC_TOOL_PATH/temp-files"
-export LOG_PATH="$SYNC_TOOL_PATH/log"
-export REPORT_PATH="$SYNC_TOOL_PATH/report"
+export LOG_PATH="$TEMP_PATH/log"
+export REPORT_PATH="$TEMP_PATH/report"
 
 # include component
 source "$COMPONENT_PATH/common.sh"
