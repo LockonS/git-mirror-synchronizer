@@ -23,6 +23,7 @@
   },
   "notification": {
     "email": {
+      "enable": "false",
       "sender": "",
       "receiver": ""
     }

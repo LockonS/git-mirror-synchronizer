@@ -203,7 +203,7 @@ op_upload_report() {
 
   for REPORT_FILE_PATH in "$HTML_BRIEF_REPORT_FILE" "$HTML_FULL_REPORT_FILE"; do
     [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]] && continue
-    REMOTE_FILE_PATH+="$(basename "$REPORT_FILE_PATH")"
+    REMOTE_FILE_PATH+="report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
 
     if $CMD_UPLOAD_FILE "$REPORT_FILE_PATH" "$REMOTE_FILE_PATH"; then
       op_prompt_checkpoint "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${DREMOTE_FILE_PATHT}${NC}"

@@ -58,10 +58,17 @@ op_process_email_notification() {
 
   local NOTIFICATION_SENDER=""
   local NOTIFICATION_RECEIVER=""
+  local NOTIFICATION_ENABLE=""
   
   if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
+    NOTIFICATION_ENABLE=$(jq -r '.notification.email.enable // ""' "$RUNTIME_CONFIG_FILE")
     NOTIFICATION_SENDER=$(jq -r '.notification.email.sender // ""' "$RUNTIME_CONFIG_FILE")
     NOTIFICATION_RECEIVER=$(jq -r '.notification.email.receiver // ""' "$RUNTIME_CONFIG_FILE")
+  fi
+
+  if [[ "$NOTIFICATION_ENABLE" != "true" ]]; then
+    op_prompt_debug "Email notification skipped: not enabled"
+    return 0
   fi
   
   if [[ -n "$NOTIFICATION_RECEIVER" ]]; then
