@@ -63,7 +63,7 @@ op_report_summary() {
   local SUCCESS="${2}"
   local FAILED="${3}"
 
-  op_prompt_info "\n${BOLD}${WHITE}=== Report Summary ===${NC}"
+  op_prompt_checkpoint -n "Report task summary"
   op_prompt_info "Total:    ${WHITE}${TOTAL}${NC}"
   op_prompt_info "Success:  ${GREEN}${SUCCESS}${NC}"
   op_prompt_info "Failed:   ${RED}${FAILED}${NC}"
@@ -71,13 +71,13 @@ op_report_summary() {
   if [[ -n "$REPORT_FILE" ]]; then
     {
       echo ""
-      echo -e "${BOLD}${WHITE}=== Report Summary ===${NC}"
+      echo -e "${BOLD}${WHITE}=== Task Summary ===${NC}"
       echo -e "Total:    ${WHITE}${TOTAL}${NC}"
       echo -e "Success:  ${GREEN}${SUCCESS}${NC}"
       echo -e "Failed:   ${RED}${FAILED}${NC}"
     } >> "$REPORT_FILE"
 
-    op_prompt_checkpoint "Save task report"
+    op_prompt_checkpoint -n "Save task report"
     op_prompt_info "Report file: ${BOLD}${REPORT_FILE}${NC}"
   fi
 }
@@ -315,7 +315,7 @@ op_cleanup_old_versions() {
     KEPT_VERSION_NUM=5
   fi
   
-  op_prompt_checkpoint "Cleanup old ${TYPE}, keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}"
+  op_prompt_checkpoint -n "Cleanup old ${TYPE}, keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}"
 
   if [[ -d "$STORAGE_PATH/$REPO_IDENTIFIER" ]]; then
     local VERSION_DIRS

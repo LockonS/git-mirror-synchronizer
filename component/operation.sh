@@ -92,7 +92,7 @@ op_initialization() {
     touch "$LOG_FILE"
   fi
 
-  REPORT_FILE="$REPORT_PATH/report-${LOG_TIMESTAMP}.log"
+  REPORT_FILE="$REPORT_PATH/report-${LOG_TIMESTAMP}.txt"
   touch "$REPORT_FILE"
   export LOG_FILE REPORT_FILE
 

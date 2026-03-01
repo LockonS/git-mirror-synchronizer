@@ -63,7 +63,8 @@ op_format_email_body() {
   fi
   
   # Load template and replace placeholders
-  local EMAIL_BODY
+  local EMAIL_BODY REPORT_FAILED_CLASS
+  [[ ${REPORT_FAILED} -eq 0 ]] && REPORT_FAILED_CLASS="stat-success" || REPORT_FAILED_CLASS="stat-failed"
   EMAIL_BODY=$(cat "$EMAIL_TEMPLATE_FILE")
   EMAIL_BODY="${EMAIL_BODY//\{\{TIMESTAMP\}\}/$TIMESTAMP}"
   EMAIL_BODY="${EMAIL_BODY//\{\{HOSTNAME\}\}/$HOSTNAME}"
@@ -71,6 +72,7 @@ op_format_email_body() {
   EMAIL_BODY="${EMAIL_BODY//\{\{REPORT_TOTAL\}\}/$REPORT_TOTAL}"
   EMAIL_BODY="${EMAIL_BODY//\{\{REPORT_SUCCESS\}\}/$REPORT_SUCCESS}"
   EMAIL_BODY="${EMAIL_BODY//\{\{REPORT_FAILED\}\}/$REPORT_FAILED}"
+  EMAIL_BODY="${EMAIL_BODY//\{\{REPORT_FAILED_CLASS\}\}/$REPORT_FAILED_CLASS}"
   EMAIL_BODY="${EMAIL_BODY//\{\{SUCCESS_RATE\}\}/$SUCCESS_RATE}"
   EMAIL_BODY="${EMAIL_BODY//\{\{DETAILED_REPORT\}\}/$DETAILED_REPORT}"
   EMAIL_BODY="${EMAIL_BODY//\{\{STATUS_NOTE\}\}/$STATUS_NOTE}"
@@ -125,7 +127,7 @@ op_send_email() {
 }
 
 # send email notification with formatted report
-op_send_email_notification() {
+op_process_email_notification() {
   local RUNTIME_CONFIG_FILE="${1:-}"
   local EXECUTION_MODE="${2:-}"
   local REPORT_TOTAL="${3:-0}"

@@ -206,7 +206,7 @@ sync_tool_entry() {
   op_report_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED"
 
   # send email notification with report
-  op_send_email_notification "$RUNTIME_CONFIG_FILE" "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
+  op_process_email_notification "$RUNTIME_CONFIG_FILE" "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
 
   # clear progress file on successful completion
   [[ -f "$PROGRESS_INDEX_FILE" ]] && rm -f "$PROGRESS_INDEX_FILE"
