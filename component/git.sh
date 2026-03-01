@@ -310,12 +310,12 @@ op_cleanup_old_versions() {
   TYPE="${4:-version}"
   KEPT_VERSIONS="${5}"
 
-  op_prompt_checkpoint "Cleanup old ${TYPE}, keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}"
-
   # default to 5 if not set or invalid
   if [[ -z "$KEPT_VERSION_NUM" || "$KEPT_VERSION_NUM" == "null" ]]; then
     KEPT_VERSION_NUM=5
   fi
+  
+  op_prompt_checkpoint "Cleanup old ${TYPE}, keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}"
 
   if [[ -d "$STORAGE_PATH/$REPO_IDENTIFIER" ]]; then
     local VERSION_DIRS
@@ -351,12 +351,19 @@ op_cleanup_old_versions() {
       fi
     done
 
+    REMOVE_COUNT=0
+
     if (( ${#ELIGIBLE_DIRS[@]} > KEPT_VERSION_NUM )); then
       op_prompt_info "Keeping ${KEPT_VERSION_NUM} newest ${TYPE}(s), removing $((${#ELIGIBLE_DIRS[@]} - KEPT_VERSION_NUM)) old ${TYPE}(s)"
       for DIR in "${ELIGIBLE_DIRS[@]:KEPT_VERSION_NUM}"; do
         op_prompt_info "Removing old ${TYPE}: $(basename "$DIR")"
         rm -rf "$DIR"
+        REMOVE_COUNT+=1
       done
+    fi
+
+    if [[ "$REMOVE_COUNT" -eq 0 ]]; then
+      op_prompt_info "No old ${TYPE} to remove, all eligible ${TYPE} are within the kept version number limit"
     fi
   fi
 }
