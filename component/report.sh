@@ -168,7 +168,12 @@ op_generate_html_report() {
 op_upload_report() {
   local RUNTIME_CONFIG_FILE="${1:-}"
 
-  local S3_ENABLE="" S3_PROFILE="" S3_BUCKET="" S3_PATH_PREFIX="" REMOTE_FILE_PATH=""
+  local S3_ENABLE="" 
+  local S3_PROFILE="" 
+  local S3_BUCKET="" 
+  local S3_PATH_PREFIX="" 
+  local REMOTE_FILE_PATH=""
+  local CMD_UPLOAD_FILE=""
 
   if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
     S3_ENABLE=$(jq -r '.report.s3.enable // "false"' "$RUNTIME_CONFIG_FILE")
@@ -195,16 +200,18 @@ op_upload_report() {
   if [[ -n "$S3_PROFILE" ]]; then
     # add '/' to the end of pathPrefix if not exist
     [[ "$S3_PATH_PREFIX" != */ ]] && S3_PATH_PREFIX="${S3_PATH_PREFIX}/"
-    REMOTE_FILE_PATH="${S3_PROFILE}:${S3_BUCKET}/${S3_PATH_PREFIX}"
   fi
 
   op_prompt_checkpoint -n "Upload HTML reports to S3"
 
   for REPORT_FILE_PATH in "$HTML_BRIEF_REPORT_FILE" "$HTML_FULL_REPORT_FILE"; do
     [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]] && continue
+
+    REMOTE_FILE_PATH="${S3_PROFILE}:${S3_BUCKET}/${S3_PATH_PREFIX}"
     REMOTE_FILE_PATH+="report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
 
-    local CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH $REMOTE_FILE_PATH"
+    CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH $REMOTE_FILE_PATH"
+    
     op_run_cmd "$CMD_UPLOAD_FILE"
     op_prompt_info "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
   done
