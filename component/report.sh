@@ -193,19 +193,18 @@ op_upload_report() {
   fi
 
   if [[ -n "$S3_PROFILE" ]]; then
-    REMOTE_FILE_PATH="${S3_PROFILE}:${S3_BUCKET}/${S3_PATH_PREFIX}/"
+    # add '/' to the end of pathPrefix if not exist
+    [[ "$S3_PATH_PREFIX" != */ ]] && S3_PATH_PREFIX="${S3_PATH_PREFIX}/"
+    REMOTE_FILE_PATH="${S3_PROFILE}:${S3_BUCKET}/${S3_PATH_PREFIX}"
   fi
-
-  local CMD_UPLOAD_FILE="rclone copyto"
 
   op_prompt_checkpoint -n "Upload HTML reports to S3"
 
   for REPORT_FILE_PATH in "$HTML_BRIEF_REPORT_FILE" "$HTML_FULL_REPORT_FILE"; do
     [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]] && continue
     REMOTE_FILE_PATH+="report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
-    CMD_UPLOAD_FILE+=" $REPORT_FILE_PATH $REMOTE_FILE_PATH"
 
-    op_run_cmd "$CMD_UPLOAD_FILE"
+    op_run_cmd "rclone copyto $REPORT_FILE_PATH $REMOTE_FILE_PATH"
 
     if [[ "$?" -ne 0 ]]; then
       op_prompt_info "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
