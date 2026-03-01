@@ -13,7 +13,7 @@ op_format_email_body() {
   local TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
   local HOSTNAME=$(hostname)
   local SUCCESS_RATE="N/A"
-  local EMAIL_TEMPLATE_FILE="$SYNC_TOOL_PATH/template/email-report.html"
+  local EMAIL_TEMPLATE_FILE="$SYNC_TOOL_PATH/template/html/mail-report.html"
   
   # Check if template file exists
   if [[ ! -f "$EMAIL_TEMPLATE_FILE" ]]; then
@@ -25,41 +25,39 @@ op_format_email_body() {
     SUCCESS_RATE=$((REPORT_SUCCESS * 100 / REPORT_TOTAL))%
   fi
   
-  # Build detailed report section
+  # Build detailed report section (only first 10 failed items)
+  local HTML_DIR="$SYNC_TOOL_PATH/template/html/mail-report"
   local DETAILED_REPORT=""
   if [[ -f "$REPORT_FILE" && -s "$REPORT_FILE" ]]; then
-    DETAILED_REPORT+="      <div class=\"section\">\n"
-    DETAILED_REPORT+="        <div class=\"section-title\">Detailed Report</div>\n"
+    local ITEM_TEMPLATE SECTION_TEMPLATE FAIL_COUNT=0 ITEMS=""
+    ITEM_TEMPLATE=$(<"$HTML_DIR/section-detail-item.html")
     while IFS= read -r line; do
-      # Escape HTML special characters
-      line="${line//&/&amp;}"
-      line="${line//</&lt;}"
-      line="${line//>/&gt;}"
-      
-      # Determine status class based on PASS/FAIL
-      if [[ "$line" == *"PASS"* ]]; then
-        DETAILED_REPORT+="        <div class=\"report-item status-pass\">${line}</div>\n"
-      elif [[ "$line" == *"FAIL"* ]]; then
-        DETAILED_REPORT+="        <div class=\"report-item status-fail\">${line}</div>\n"
-      else
-        DETAILED_REPORT+="        <div class=\"report-item\">${line}</div>\n"
+      if [[ "$line" == *"FAIL"* && $FAIL_COUNT -lt 10 ]]; then
+        # Escape HTML special characters
+        line="${line//&/&amp;}"
+        line="${line//</&lt;}"
+        line="${line//>/&gt;}"
+        ITEMS+="${ITEM_TEMPLATE//\{\{LINE\}\}/$line}"$'\n'
+        (( FAIL_COUNT++ ))
       fi
     done < "$REPORT_FILE"
-    DETAILED_REPORT+="      </div>\n"
+
+    if [[ ${REPORT_FAILED} -gt 10 ]]; then
+      local OVERFLOW_TEMPLATE
+      OVERFLOW_TEMPLATE=$(<"$HTML_DIR/section-detail-overflow.html")
+      ITEMS+="${OVERFLOW_TEMPLATE//\{\{COUNT\}\}/$((REPORT_FAILED - 10))}"$'\n'
+    fi
+
+    SECTION_TEMPLATE=$(<"$HTML_DIR/section-detail-report.html")
+    DETAILED_REPORT="${SECTION_TEMPLATE//\{\{ITEMS\}\}/$ITEMS}"
   fi
-  
+
   # Build status note section
   local STATUS_NOTE=""
   if [[ ${REPORT_FAILED} -eq 0 ]]; then
-    STATUS_NOTE+="          <div style=\"display: flex; align-items: center;\">\n"
-    STATUS_NOTE+="            <span class=\"icon\">✓</span>\n"
-    STATUS_NOTE+="            <span style=\"color: #28a745; font-weight: 500;\">All syncs completed successfully!</span>\n"
-    STATUS_NOTE+="          </div>\n"
+    STATUS_NOTE=$(<"$HTML_DIR/section-status-success.html")
   else
-    STATUS_NOTE+="          <div style=\"display: flex; align-items: center;\">\n"
-    STATUS_NOTE+="            <span class=\"icon\">⚠</span>\n"
-    STATUS_NOTE+="            <span style=\"color: #dc3545; font-weight: 500;\">Some syncs failed. Please review the detailed report.</span>\n"
-    STATUS_NOTE+="          </div>\n"
+    STATUS_NOTE=$(<"$HTML_DIR/section-status-failed.html")
   fi
   
   # Load template and replace placeholders
