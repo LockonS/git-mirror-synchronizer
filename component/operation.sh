@@ -49,7 +49,6 @@ op_run_cmd_with_result() {
 
   if [[ "$DRY_RUN" != true ]]; then
     CMD_EXEC_STDOUT=$(zsh -c "$CMD_STR")
-    export CMD_EXEC_STDOUT
   else
     # print command on console
     echo -e "\n${GREY}${CMD_STR}${NC}\n"
