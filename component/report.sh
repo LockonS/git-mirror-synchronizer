@@ -192,7 +192,6 @@ op_upload_report() {
     return 1
   fi
 
-
   if [[ -n "$S3_PROFILE" ]]; then
     REMOTE_FILE_PATH="${S3_PROFILE}:${S3_BUCKET}/${S3_PATH_PREFIX}/"
   fi
@@ -205,8 +204,8 @@ op_upload_report() {
     [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]] && continue
     REMOTE_FILE_PATH+="report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
 
-    if $CMD_UPLOAD_FILE "$REPORT_FILE_PATH" "$REMOTE_FILE_PATH"; then
-      op_prompt_checkpoint "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${DREMOTE_FILE_PATHT}${NC}"
+    if ${=CMD_UPLOAD_FILE} "$REPORT_FILE_PATH" "$REMOTE_FILE_PATH"; then
+      op_prompt_checkpoint "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
     else
       op_prompt_error "Failed to upload: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
       return 1
