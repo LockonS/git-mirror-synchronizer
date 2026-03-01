@@ -17,7 +17,8 @@
     "s3": {
       "enable": "false",
       "profile": "",
-      "bucket": ""
+      "bucket": "",
+      "pathPrefix":""
     }
   },
   "notification": {

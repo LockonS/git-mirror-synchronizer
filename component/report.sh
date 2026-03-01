@@ -164,3 +164,52 @@ op_generate_html_report() {
   echo -e "$HTML_BRIEF_REPORT" > "$HTML_BRIEF_REPORT_FILE"
   echo -e "$HTML_FULL_REPORT" > "$HTML_FULL_REPORT_FILE"
 }
+
+op_upload_report() {
+  local RUNTIME_CONFIG_FILE="${1:-}"
+
+  local S3_ENABLE="" S3_PROFILE="" S3_BUCKET="" S3_PATH_PREFIX="" REMOTE_FILE_PATH=""
+
+  if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
+    S3_ENABLE=$(jq -r '.report.s3.enable // "false"' "$RUNTIME_CONFIG_FILE")
+    S3_PROFILE=$(jq -r '.report.s3.profile // ""' "$RUNTIME_CONFIG_FILE")
+    S3_BUCKET=$(jq -r '.report.s3.bucket // ""' "$RUNTIME_CONFIG_FILE")
+    S3_PATH_PREFIX=$(jq -r '.report.s3.pathPrefix // ""' "$RUNTIME_CONFIG_FILE")
+  fi
+
+  if [[ "$S3_ENABLE" != "true" ]]; then
+    op_prompt_debug "S3 report upload skipped: not enabled"
+    return 0
+  fi
+
+  if [[ -z "$S3_BUCKET" ]]; then
+    op_prompt_warn "S3 report upload skipped: no bucket configured"
+    return 1
+  fi
+
+  if ! command -v rclone &>/dev/null; then
+    op_prompt_warn "S3 report upload skipped: ${BOLD}rclone${NC} not found"
+    return 1
+  fi
+
+
+  if [[ -n "$S3_PROFILE" ]]; then
+    REMOTE_FILE_PATH="${S3_PROFILE}:${S3_BUCKET}/${S3_PATH_PREFIX}/"
+  fi
+
+  local CMD_UPLOAD_FILE="rclone copyto"
+
+  op_prompt_checkpoint -n "Upload HTML reports to S3"
+
+  for REPORT_FILE_PATH in "$HTML_BRIEF_REPORT_FILE" "$HTML_FULL_REPORT_FILE"; do
+    [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]] && continue
+    REMOTE_FILE_PATH+="$(basename "$REPORT_FILE_PATH")"
+
+    if $CMD_UPLOAD_FILE "$REPORT_FILE_PATH" "$REMOTE_FILE_PATH"; then
+      op_prompt_checkpoint "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${DREMOTE_FILE_PATHT}${NC}"
+    else
+      op_prompt_error "Failed to upload: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
+      return 1
+    fi
+  done
+}
