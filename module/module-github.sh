@@ -111,7 +111,7 @@ op_github_download_release() {
   if [[ $RET -eq 200 ]]; then return 0; elif [[ $RET -ne 0 ]]; then return $RET; fi
 
   # extract release tag name
-  RELEASE_TAG_NAME=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.tag_name' | tr -d '"')
+  RELEASE_TAG_NAME=$(jq -r '.tag_name' <<<"$REPO_RELEASE_DATA")
 
   # print downloading assets message
   # check if the corresponding release was already downloaded
@@ -124,7 +124,7 @@ op_github_download_release() {
 
   # traverse release assets list
   local ASSET_INDEX ASSET_LENGTH
-  ASSET_LENGTH=$(printf "%s" "$REPO_RELEASE_DATA" | jq '.assets | length')
+  ASSET_LENGTH=$(jq '.assets | length' <<<"$REPO_RELEASE_DATA")
   if [[ "$ASSET_LENGTH" -eq 0 ]]; then
     op_prompt_info "No release artifact found"
     return 0
@@ -132,7 +132,7 @@ op_github_download_release() {
 
   op_prompt_info "Found ${GREEN}${ASSET_LENGTH}${NC} assets"
   for ((ASSET_INDEX = 0; ASSET_INDEX < ASSET_LENGTH; ASSET_INDEX++)); do
-    ASSET_DATA=$(printf "%s" "$REPO_RELEASE_DATA" | jq ".assets[$ASSET_INDEX]")
+    ASSET_DATA=$(jq ".assets[$ASSET_INDEX]" <<<"$REPO_RELEASE_DATA")
     op_github_download_release_asset "$RELEASE_STORAGE_PATH" "$ASSET_DATA" "$EXCLUDE_KEYWORDS"
   done
 
@@ -190,19 +190,19 @@ op_github_download_tag() {
 
   # traverse release assets list
   local ASSET_LENGTH ASSET_DATA ASSET_NAME TAG_NAME CMD_DOWNLOAD_ASSET ASSET_DOWNLOAD_URL
-  ASSET_LENGTH=$(printf "%s" "$REPO_TAGS_DATA" | jq '. | length')
+  ASSET_LENGTH=$(jq '. | length' <<<"$REPO_TAGS_DATA")
   if [[ "$ASSET_LENGTH" -eq 0 ]]; then
     op_prompt_info "No tags artifact found"
     return 0
   fi
-  ASSET_DATA=$(printf "%s" "$REPO_TAGS_DATA" | jq ".[0]")
+  ASSET_DATA=$(jq ".[0]" <<<"$REPO_TAGS_DATA")
 
   # extract release tag name
-  TAG_NAME=$(printf "%s" "$ASSET_DATA" | jq ".name" | tr -d '"')
+  TAG_NAME=$(jq -r ".name" <<<"$ASSET_DATA")
   ASSET_NAME="${TAG_NAME}.tar.gz"
 
   # extract release tag name
-  ASSET_DOWNLOAD_URL=$(printf "%s" "$ASSET_DATA" | jq ".tarball_url" | tr -d '"')
+  ASSET_DOWNLOAD_URL=$(jq -r ".tarball_url" <<<"$ASSET_DATA")
 
   # print downloading assets message
   # check if the corresponding tag resource was already downloaded
@@ -245,8 +245,8 @@ op_github_download_release_asset() {
 
   # configuration variables
   local ASSET_NAME ASSET_DOWNLOAD_URL CMD_DOWNLOAD_ASSET
-  ASSET_NAME=$(echo "$ASSET_DATA" | jq ".name" | tr -d '"')
-  ASSET_DOWNLOAD_URL=$(echo "$ASSET_DATA" | jq ".browser_download_url" | tr -d '"')
+  ASSET_NAME=$(jq -r ".name" <<<"$ASSET_DATA")
+  ASSET_DOWNLOAD_URL=$(jq -r ".browser_download_url" <<<"$ASSET_DATA")
 
   op_prompt_checkpoint "Downloading asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
   mkdir -p "$RELEASE_STORAGE_PATH"

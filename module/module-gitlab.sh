@@ -28,7 +28,7 @@ op_gitlab_check_api_response() {
   JSON_DATA="${1}"
   ARTIFACT_TYPE="${2}"
 
-  RESPONSE_MESSAGE=$(printf "%s" "$JSON_DATA" | jq -r 'select(type=="object" and has("message")) | .message')
+  RESPONSE_MESSAGE=$(jq -r 'select(type=="object" and has("message")) | .message' <<<"$JSON_DATA")
   if [[ -n "$RESPONSE_MESSAGE" && "$RESPONSE_MESSAGE" != "null" ]]; then
     case "$RESPONSE_MESSAGE" in
       *"Not Found"* | *"404"*)
