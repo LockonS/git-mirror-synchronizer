@@ -13,10 +13,6 @@
     "download": "true",
     "keptVersionNum": "5"
   },
-  "postHook": {
-    "enabled": "false",
-    "scriptPath": ""
-  },
   "notification": {
     "email": {
       "sender": "",
