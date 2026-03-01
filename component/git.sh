@@ -72,14 +72,14 @@ op_report_summary() {
 
   # print summary on console with colored formatting
   op_prompt_checkpoint -n "Report task summary"
-  REPORT_CONTENT="\nTotal:    ${BLUE}${TOTAL}${NC}"
+  REPORT_CONTENT="Total:    ${BLUE}${TOTAL}${NC}"
   REPORT_CONTENT+="\nSuccess:  ${GREEN}${SUCCESS}${NC}"
   REPORT_CONTENT+="\nFailed:   ${FAILED_COLOR}${FAILED}${NC}"
   op_prompt_info "$REPORT_CONTENT"
 
   if [[ -n "$REPORT_FILE" ]]; then
     {
-      op_prompt_info "\n${BOLD}${WHITE}=== Task Summary ===${NC}"
+      op_prompt_info "\n${BOLD}${WHITE}=== Task Summary ===${NC}\n"
       op_prompt_info "$REPORT_CONTENT"
     } >> "$REPORT_FILE"
 
