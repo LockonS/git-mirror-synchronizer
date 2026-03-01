@@ -107,12 +107,15 @@ op_send_email() {
     EMAIL_CONTENT+="Content-Transfer-Encoding: 8bit\n"
     EMAIL_CONTENT+="\n"
     EMAIL_CONTENT+="${BODY}"
+
+    # print empty line before email content for better readability in logs
+    echo -e ""
     
     echo -e "$EMAIL_CONTENT" | sendmail -t
     if [[ $? -eq 0 ]]; then
-      op_prompt_checkpoint "Email sent from: ${BOLD}${GREEN}${SENDER}${DEFAULT} to: ${NC}${GREEN}${RECIPIENT}${NC}"
+      op_prompt_checkpoint "Email sent from: ${BOLD}${GREEN}${SENDER}${NC} to: ${BOLD}${GREEN}${RECIPIENT}${NC}"
     else
-      op_prompt_error "Failed to send email from: ${BOLD}${SENDER}${DEFAULT} to: ${BOLD}${RECIPIENT}${NC}"
+      op_prompt_error "Failed to send email from: ${BOLD}${SENDER}${NC} to: ${BOLD}${RECIPIENT}${NC}"
       return 1
     fi
   else

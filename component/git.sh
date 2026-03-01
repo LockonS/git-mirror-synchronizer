@@ -63,20 +63,22 @@ op_report_summary() {
   local SUCCESS="${2}"
   local FAILED="${3}"
 
-  echo -e "\n${BOLD}${WHITE}=== Report Summary ===${NC}"
-  echo -e "Total:    ${WHITE}${TOTAL}${NC}"
-  echo -e "Success:  ${GREEN}${SUCCESS}${NC}"
-  echo -e "Failed:   ${RED}${FAILED}${NC}"
+  op_prompt_info "\n${BOLD}${WHITE}=== Report Summary ===${NC}"
+  op_prompt_info "Total:    ${WHITE}${TOTAL}${NC}"
+  op_prompt_info "Success:  ${GREEN}${SUCCESS}${NC}"
+  op_prompt_info "Failed:   ${RED}${FAILED}${NC}"
 
   if [[ -n "$REPORT_FILE" ]]; then
     {
       echo ""
-      echo -e "${BOLD}${WHITE}=== Summary ===${NC}"
+      echo -e "${BOLD}${WHITE}=== Report Summary ===${NC}"
       echo -e "Total:    ${WHITE}${TOTAL}${NC}"
       echo -e "Success:  ${GREEN}${SUCCESS}${NC}"
       echo -e "Failed:   ${RED}${FAILED}${NC}"
     } >> "$REPORT_FILE"
-    echo -e "\nReport saved: ${BOLD}${REPORT_FILE}${NC}"
+
+    op_prompt_checkpoint "Save task report"
+    op_prompt_info "Report file: ${BOLD}${REPORT_FILE}${NC}"
   fi
 }
 
