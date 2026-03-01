@@ -213,7 +213,7 @@ sync_tool_entry() {
   op_generate_html_report "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
 
   # upload HTML report
-  op_upload_report "$RUNTIME_CONFIG_FILE"
+  op_upload_report "$RUNTIME_CONFIG_FILE" "$HTML_FULL_REPORT_FILE"
 
   # send email notification with report
   op_process_email_notification "$RUNTIME_CONFIG_FILE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"

@@ -167,11 +167,13 @@ op_generate_html_report() {
 
 op_upload_report() {
   local RUNTIME_CONFIG_FILE="${1:-}"
+  local REPORT_FILE_PATH="${2:-}"
 
   local S3_ENABLE="" 
   local S3_PROFILE="" 
   local S3_BUCKET="" 
   local S3_PATH_PREFIX="" 
+  local S3_URL_PREFIX=""
   local REMOTE_FILE_PATH=""
   local CMD_UPLOAD_FILE=""
 
@@ -180,6 +182,11 @@ op_upload_report() {
     S3_PROFILE=$(jq -r '.report.s3.profile // ""' "$RUNTIME_CONFIG_FILE")
     S3_BUCKET=$(jq -r '.report.s3.bucket // ""' "$RUNTIME_CONFIG_FILE")
     S3_PATH_PREFIX=$(jq -r '.report.s3.pathPrefix // ""' "$RUNTIME_CONFIG_FILE")
+    S3_URL_PREFIX=$(jq -r '.report.s3.urlPrefix // ""' "$RUNTIME_CONFIG_FILE")
+  fi
+
+  if [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]]; then
+    op_prompt_warn "Report file not exist: ${BOLD}${REPORT_FILE_PATH}${NC}"
   fi
 
   if [[ "$S3_ENABLE" != "true" ]]; then
@@ -192,27 +199,26 @@ op_upload_report() {
     return 1
   fi
 
+  if [[ -z "$S3_PROFILE" ]]; then
+    op_prompt_warn "S3 report upload skipped: no profile configured"
+    return 1
+  fi
+
   if ! command -v rclone &>/dev/null; then
     op_prompt_warn "S3 report upload skipped: ${BOLD}rclone${NC} not found"
     return 1
   fi
 
-  if [[ -n "$S3_PROFILE" ]]; then
-    # add '/' to the end of pathPrefix if not exist
-    [[ "$S3_PATH_PREFIX" != */ ]] && S3_PATH_PREFIX="${S3_PATH_PREFIX}/"
-  fi
+  # remove trailing '/' from if present
+  [[ "$S3_PATH_PREFIX" == */ ]] && S3_PATH_PREFIX="${S3_PATH_PREFIX%/}"
+  [[ "$S3_URL_PREFIX" == */ ]] && S3_URL_PREFIX="${S3_URL_PREFIX%/}"
 
   op_prompt_checkpoint -n "Upload HTML reports to S3"
 
-  for REPORT_FILE_PATH in "$HTML_BRIEF_REPORT_FILE" "$HTML_FULL_REPORT_FILE"; do
-    [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]] && continue
+  REMOTE_FILE_PATH="${S3_PATH_PREFIX}/report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
+  REPORT_FILE_URL="${S3_URL_PREFIX}/${REMOTE_FILE_PATH}"
 
-    REMOTE_FILE_PATH="${S3_PROFILE}:${S3_BUCKET}/${S3_PATH_PREFIX}"
-    REMOTE_FILE_PATH+="report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
-
-    CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH $REMOTE_FILE_PATH"
-    
-    op_run_cmd "$CMD_UPLOAD_FILE"
-    op_prompt_info "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
-  done
+  CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH ${S3_PROFILE}:${S3_BUCKET}/${REMOTE_FILE_PATH}"
+  op_run_cmd "$CMD_UPLOAD_FILE"
+  op_prompt_info "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
 }

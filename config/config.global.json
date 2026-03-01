@@ -18,7 +18,8 @@
       "enable": "false",
       "profile": "",
       "bucket": "",
-      "pathPrefix":""
+      "pathPrefix": "",
+      "urlPrefix": ""
     }
   },
   "notification": {
