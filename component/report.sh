@@ -216,7 +216,10 @@ op_upload_report() {
   op_prompt_checkpoint -n "Upload HTML reports to S3"
 
   REMOTE_FILE_PATH="${S3_PATH_PREFIX}/report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
-  REPORT_FILE_URL="${S3_URL_PREFIX}/${REMOTE_FILE_PATH}"
+
+  # assemble and export public report URL for email notification
+  PUBLIC_REPORT_FILE_URL="${S3_URL_PREFIX}/${REMOTE_FILE_PATH}"
+  export PUBLIC_REPORT_FILE_URL
 
   CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH ${S3_PROFILE}:${S3_BUCKET}/${REMOTE_FILE_PATH}"
   op_run_cmd "$CMD_UPLOAD_FILE"

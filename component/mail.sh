@@ -56,6 +56,9 @@ op_process_email_notification() {
   local REPORT_FAILED="${4:-0}"
   local REPORT_FILE="${5:-}"
 
+  # TODO add url to full report in email content
+  local PUBLIC_REPORT_FILE_URL="${6:-}"
+
   local NOTIFICATION_SENDER=""
   local NOTIFICATION_RECEIVER=""
   local NOTIFICATION_ENABLE=""
