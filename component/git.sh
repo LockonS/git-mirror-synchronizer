@@ -63,29 +63,27 @@ op_report_summary() {
   local SUCCESS="${2}"
   local FAILED="${3}"
 
-  op_prompt_checkpoint -n "Report task summary"
-  op_prompt_info "Total:    ${BLUE}${TOTAL}${NC}"
-  op_prompt_info "Success:  ${GREEN}${SUCCESS}${NC}"
+  local FAILED_COLOR
   if [[ "$FAILED" -eq 0 ]]; then
-    op_prompt_info "Failed:   ${WHITE}${FAILED}${NC}"
+    FAILED_COLOR="${WHITE}"
   else
-    op_prompt_info "Failed:   ${RED}${FAILED}${NC}"
+    FAILED_COLOR="${RED}"
   fi
+
+  # print summary on console with colored formatting
+  op_prompt_checkpoint -n "Report task summary"
+  REPORT_CONTENT="Total:    ${BLUE}${TOTAL}${NC}"
+  REPORT_CONTENT+="Success:  ${GREEN}${SUCCESS}${NC}"
+  REPORT_CONTENT+="Failed:   ${FAILED_COLOR}${FAILED}${NC}"
+  op_prompt_info "$REPORT_CONTENT"
 
   if [[ -n "$REPORT_FILE" ]]; then
     {
-      echo ""
-      echo -e "${BOLD}${WHITE}=== Task Summary ===${NC}"
-      echo -e "Total:    ${BLUE}${TOTAL}${NC}"
-      echo -e "Success:  ${GREEN}${SUCCESS}${NC}"
-      if [[ "$FAILED" -eq 0 ]]; then
-        echo -e "Failed:   ${WHITE}${FAILED}${NC}"
-      else
-        echo -e "Failed:   ${RED}${FAILED}${NC}"
-      fi
+      op_prompt_info "${BOLD}${WHITE}=== Task Summary ===${NC}"
+      op_prompt_info "$REPORT_CONTENT"
     } >> "$REPORT_FILE"
 
-    op_prompt_checkpoint -n "Save task report"
+    op_prompt_checkpoint -n "Save task summary report"
     op_prompt_info "Report file: ${BOLD}${REPORT_FILE}${NC}"
   fi
 }
