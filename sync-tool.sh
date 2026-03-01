@@ -5,7 +5,7 @@ export SYNC_TOOL_PATH
 
 # resource path
 export COMPONENT_PATH="$SYNC_TOOL_PATH/component"
-export MODULE_PATH="$SYNC_TOOL_PATH/module"
+export PLATFORM_MODULE_PATH="$SYNC_TOOL_PATH/platform"
 export DATA_PATH="$SYNC_TOOL_PATH/data"
 export CONFIG_PATH="$SYNC_TOOL_PATH/config"
 export TEMP_PATH="$SYNC_TOOL_PATH/temp-files"
@@ -21,9 +21,9 @@ source "$COMPONENT_PATH/report.sh"
 source "$COMPONENT_PATH/mail.sh"
 
 # include module
-source "$MODULE_PATH/module-github.sh"
-source "$MODULE_PATH/module-gitlab.sh"
-source "$MODULE_PATH/module-general.sh"
+source "$PLATFORM_MODULE_PATH/module-github.sh"
+source "$PLATFORM_MODULE_PATH/module-gitlab.sh"
+source "$PLATFORM_MODULE_PATH/module-general.sh"
 
 # function manual
 sync_tool_manual() {

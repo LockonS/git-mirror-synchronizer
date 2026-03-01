@@ -8,8 +8,8 @@
 #   {platform}  — lower case prefix used in function and variable
 #                 names, e.g. "gitea", "bitbucket"
 #
-# Steps to create a new module:
-#   1. Copy this file to module/module-{platform}.sh
+# Steps to create a new platform module:
+#   1. Copy this file to platform/module-{platform}.sh
 #   2. Replace every {PLATFORM} and {platform} with the real values
 #   3. Create the token directory: data/{platform}/
 #   4. Implement the TODO sections
