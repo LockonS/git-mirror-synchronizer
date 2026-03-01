@@ -3,92 +3,7 @@
 # Git operations for git-mirror-synchronizer
 # Handles repository cloning, pulling, syncing to mirror remotes, and reporting
 
-# append a single repo result line to the report file
-op_report_repo_result() {
-  local INDEX="${1}"
-  local TOTAL="${2}"
-  local REPO_URL="${3}"
-  local STATUS="${4}"
-  if [[ "$STATUS" == "PASS" ]]; then
-    echo -e "[${INDEX}/${TOTAL}] ${GREEN}${BOLD}${STATUS}${NC}   ${REPO_URL}"
-  else
-    echo -e "[${INDEX}/${TOTAL}] ${RED}${BOLD}${STATUS}${NC}   ${REPO_URL}"
-  fi
-  [[ -z "$REPORT_FILE" ]] && return 0
-  if [[ "$STATUS" == "PASS" ]]; then
-    printf "[%d/%d] ${GREEN}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
-  else
-    printf "[%d/%d] ${RED}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
-  fi
-}
 
-# load setting from global config file and in-line parameter
-op_load_runtime_config() {
-  local RUNTIME_CONFIG_FILE GLOBAL_RUNTIME_CONFIG
-  RUNTIME_CONFIG_FILE="${1}"
-  GLOBAL_RUNTIME_CONFIG=$(jq -s '.[0] * .[1]' "$GLOBAL_CONFIG_FILE" "$RUNTIME_CONFIG_FILE")
-
-  if [[ "$LOG_LEVEL" == "debug" ]]; then
-    op_prompt_debug "Loading runtime config: '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}'"
-  fi
-
-  echo "$GLOBAL_RUNTIME_CONFIG" >"${TEMP_PATH}/global.temp.json"
-}
-
-# write the report file header
-op_report_write_header() {
-  local EXECUTION_MODE="${1:-all}"
-  local START_INDEX="${2:-0}"
-  local END_INDEX="${3:-}"
-  local FILTER_REPO_URL="${4:-}"
-  echo -e "\n${BOLD}${WHITE}=== Sync Report ===${NC}"
-  echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
-  echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
-  [[ -z "$FILTER_REPO_URL" ]] && echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
-  [[ -n "$FILTER_REPO_URL" ]] && echo -e "Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
-  [[ -z "$REPORT_FILE" ]] && return 0
-  {
-    echo -e "${BOLD}${WHITE}=== Sync Report ===${NC}"
-    echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
-    echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
-    [[ -z "$FILTER_REPO_URL" ]] && echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
-    [[ -n "$FILTER_REPO_URL" ]] && echo -e "Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
-    echo ""
-  } > "$REPORT_FILE"
-}
-
-# append summary block to the report file and echo it to stdout
-op_report_summary() {
-  local TOTAL="${1}"
-  local SUCCESS="${2}"
-  local FAILED="${3}"
-
-  local FAILED_COLOR
-  if [[ "$FAILED" -eq 0 ]]; then
-    FAILED_COLOR="${WHITE}"
-  else
-    FAILED_COLOR="${RED}"
-  fi
-
-  # print summary on console with colored formatting
-  op_prompt_checkpoint -n "Report task summary"
-  REPORT_CONTENT="Total:    ${BLUE}${TOTAL}${NC}"
-  REPORT_CONTENT+="\nSuccess:  ${GREEN}${SUCCESS}${NC}"
-  REPORT_CONTENT+="\nFailed:   ${FAILED_COLOR}${FAILED}${NC}"
-  op_prompt_info "$REPORT_CONTENT"
-
-  if [[ -n "$REPORT_FILE" ]]; then
-    {
-      op_prompt_info "\n${BOLD}${WHITE}=== Task Summary ===${NC}\n"
-      op_prompt_info "$REPORT_CONTENT"
-    } >> "$REPORT_FILE"
-
-    op_prompt_checkpoint -n "Save task summary report"
-    op_prompt_info "Report file: ${BOLD}${REPORT_FILE}${NC}"
-  fi
-}
-
-# shellcheck disable=SC2124
 # setup repo sync setting and sync repo to local storage, then optionally sync to mirror repos if configured
 op_sync_repo() {
   local REPO_RUNTIME_CONFIG REPO_NAME REPO_IDENTIFIER REPO_CATALOG REPO_STORAGE_PATH REPO_LOCAL_PATH
@@ -288,7 +203,7 @@ op_handle_repo() {
 }
 
 # handle config data for a single repo
-op_dispatch_repo() {
+op_dispatch_repo_handler() {
   local REPO_DATA REPO_RUNTIME_CONFIG REPO_URL
   REPO_DATA="$*"
   REPO_RUNTIME_CONFIG=$(op_load_repo_config "$REPO_DATA")

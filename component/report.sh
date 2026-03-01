@@ -1,6 +1,76 @@
 #!/usr/bin/env zsh
 
-# HTML report generation functions for git-mirror-synchronizer
+# write the report file header
+op_report_write_header() {
+  local EXECUTION_MODE="${1:-all}"
+  local START_INDEX="${2:-0}"
+  local END_INDEX="${3:-}"
+  local FILTER_REPO_URL="${4:-}"
+  echo -e "\n${BOLD}${WHITE}=== Sync Report ===${NC}"
+  echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+  echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
+  [[ -z "$FILTER_REPO_URL" ]] && echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
+  [[ -n "$FILTER_REPO_URL" ]] && echo -e "Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
+  [[ -z "$REPORT_FILE" ]] && return 0
+  {
+    echo -e "${BOLD}${WHITE}=== Sync Report ===${NC}"
+    echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+    echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
+    [[ -z "$FILTER_REPO_URL" ]] && echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
+    [[ -n "$FILTER_REPO_URL" ]] && echo -e "Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
+    echo ""
+  } > "$REPORT_FILE"
+}
+
+# append a single repo result line to the report file
+op_report_append_repo_result() {
+  local INDEX="${1}"
+  local TOTAL="${2}"
+  local REPO_URL="${3}"
+  local STATUS="${4}"
+  if [[ "$STATUS" == "PASS" ]]; then
+    echo -e "[${INDEX}/${TOTAL}] ${GREEN}${BOLD}${STATUS}${NC}   ${REPO_URL}"
+  else
+    echo -e "[${INDEX}/${TOTAL}] ${RED}${BOLD}${STATUS}${NC}   ${REPO_URL}"
+  fi
+  [[ -z "$REPORT_FILE" ]] && return 0
+  if [[ "$STATUS" == "PASS" ]]; then
+    printf "[%d/%d] ${GREEN}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
+  else
+    printf "[%d/%d] ${RED}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
+  fi
+}
+
+# append summary block to the report file and echo it to stdout
+op_report_write_summary() {
+  local TOTAL="${1}"
+  local SUCCESS="${2}"
+  local FAILED="${3}"
+
+  local FAILED_COLOR
+  if [[ "$FAILED" -eq 0 ]]; then
+    FAILED_COLOR="${WHITE}"
+  else
+    FAILED_COLOR="${RED}"
+  fi
+
+  # print summary on console with colored formatting
+  op_prompt_checkpoint -n "Report task summary"
+  REPORT_CONTENT="Total:    ${BLUE}${TOTAL}${NC}"
+  REPORT_CONTENT+="\nSuccess:  ${GREEN}${SUCCESS}${NC}"
+  REPORT_CONTENT+="\nFailed:   ${FAILED_COLOR}${FAILED}${NC}"
+  op_prompt_info "$REPORT_CONTENT"
+
+  if [[ -n "$REPORT_FILE" ]]; then
+    {
+      op_prompt_info "\n${BOLD}${WHITE}=== Task Summary ===${NC}\n"
+      op_prompt_info "$REPORT_CONTENT"
+    } >> "$REPORT_FILE"
+
+    op_prompt_checkpoint -n "Save task summary report"
+    op_prompt_info "Report file: ${BOLD}${REPORT_FILE}${NC}"
+  fi
+}
 
 # format and write HTML report files (brief: first 10 failures, full: all failures)
 op_generate_html_report() {

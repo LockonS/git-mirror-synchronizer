@@ -80,6 +80,20 @@ op_get_os_type() {
   fi
 }
 
+
+# load setting from global config file and in-line parameter
+op_load_runtime_config() {
+  local RUNTIME_CONFIG_FILE GLOBAL_RUNTIME_CONFIG
+  RUNTIME_CONFIG_FILE="${1}"
+  GLOBAL_RUNTIME_CONFIG=$(jq -s '.[0] * .[1]' "$GLOBAL_CONFIG_FILE" "$RUNTIME_CONFIG_FILE")
+
+  if [[ "$LOG_LEVEL" == "debug" ]]; then
+    op_prompt_debug "Loading runtime config: '${YELLOW}${RUNTIME_CONFIG_FILE}${NC}'"
+  fi
+
+  echo "$GLOBAL_RUNTIME_CONFIG" >"${TEMP_PATH}/global.temp.json"
+}
+
 op_initialization() {
   echo -e "\n--------------------- $OPERATION_TIME ---------------------\n"
   mkdir -p "$TEMP_PATH"

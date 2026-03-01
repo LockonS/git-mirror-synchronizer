@@ -14,7 +14,7 @@
 #   3. Create the token directory: data/{platform}/
 #   4. Implement the TODO sections
 #   5. Source the new module in sync-tool.sh
-#   6. Add URL match condition in op_dispatch_repo (operation.sh)
+#   6. Add URL match condition in op_dispatch_repo_handler (operation.sh)
 # ============================================================
 
 # function and variables in this file are {PLATFORM} exclusive

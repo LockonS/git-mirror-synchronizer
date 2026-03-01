@@ -51,11 +51,10 @@ op_send_email() {
 # send email notification with formatted report
 op_process_email_notification() {
   local RUNTIME_CONFIG_FILE="${1:-}"
-  local EXECUTION_MODE="${2:-}"
-  local REPORT_TOTAL="${3:-0}"
-  local REPORT_SUCCESS="${4:-0}"
-  local REPORT_FAILED="${5:-0}"
-  local REPORT_FILE="${6:-}"
+  local REPORT_TOTAL="${2:-0}"
+  local REPORT_SUCCESS="${3:-0}"
+  local REPORT_FAILED="${4:-0}"
+  local REPORT_FILE="${5:-}"
 
   local NOTIFICATION_SENDER=""
   local NOTIFICATION_RECEIVER=""
@@ -69,7 +68,6 @@ op_process_email_notification() {
     local EMAIL_SUBJECT EMAIL_REPORT_CONTENT
     EMAIL_SUBJECT="Git Mirror Sync Report"
 
-    op_generate_html_report "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
     EMAIL_REPORT_CONTENT=$(<"$HTML_BRIEF_REPORT_FILE")
     
     op_send_email "$NOTIFICATION_SENDER" "$NOTIFICATION_RECEIVER" "$EMAIL_SUBJECT" "$EMAIL_REPORT_CONTENT"

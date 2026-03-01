@@ -182,16 +182,16 @@ sync_tool_entry() {
     [[ -z "$FILTER_REPO_URL" ]] && echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
 
     # dispatch repo data to operation module and get processing result
-    op_dispatch_repo "$REPO_DATA"
+    op_dispatch_repo_handler "$REPO_DATA"
 
     # update report counters and write report result for current repo
     REPORT_TOTAL=$((REPORT_TOTAL + 1))
     if [[ "$REPO_PROCESS_STATUS" == "failed" ]]; then
       REPORT_FAILED=$((REPORT_FAILED + 1))
-      op_report_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "FAIL"
+      op_report_append_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "FAIL"
     else
       REPORT_SUCCESS=$((REPORT_SUCCESS + 1))
-      op_report_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "PASS"
+      op_report_append_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "PASS"
     fi
 
     [[ -z "$FILTER_REPO_URL" ]] && echo "$PROGRESS_INDEX" > "$PROGRESS_INDEX_FILE"
@@ -200,17 +200,20 @@ sync_tool_entry() {
 
   # warn if --repo-url matched nothing
   if [[ -n "$FILTER_REPO_URL" ]] && [[ "$REPO_MATCHED" != "true" ]]; then
-    op_prompt_warn "No repository matched repoUrl: ${FILTER_REPO_URL}"
+    op_prompt_warn "No repository matched repoUrl: ${BOLD}${FILTER_REPO_URL}${NC}"
   fi
-
-  # print and save report summary
-  op_report_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED"
-
-  # send email notification with report
-  op_process_email_notification "$RUNTIME_CONFIG_FILE" "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
 
   # clear progress file on successful completion
   [[ -f "$PROGRESS_INDEX_FILE" ]] && rm -f "$PROGRESS_INDEX_FILE"
+
+  # print and save report summary
+  op_report_write_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED"
+
+  # generate HTML report files
+  op_generate_html_report "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
+
+  # send email notification with report
+  op_process_email_notification "$RUNTIME_CONFIG_FILE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
 }
 
 op_initialization
