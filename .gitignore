@@ -3,6 +3,8 @@ data/
 history/
 log/
 temp/
+temp-files/
+!temp-files/README.md
 report/
 *.log
 .idea/

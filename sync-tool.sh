@@ -8,7 +8,7 @@ export COMPONENT_PATH="$SYNC_TOOL_PATH/component"
 export MODULE_PATH="$SYNC_TOOL_PATH/module"
 export DATA_PATH="$SYNC_TOOL_PATH/data"
 export CONFIG_PATH="$SYNC_TOOL_PATH/config"
-export TEMP_PATH="$SYNC_TOOL_PATH/temp"
+export TEMP_PATH="$SYNC_TOOL_PATH/temp-files"
 export LOG_PATH="$SYNC_TOOL_PATH/log"
 export REPORT_PATH="$SYNC_TOOL_PATH/report"
 
@@ -17,6 +17,7 @@ source "$COMPONENT_PATH/common.sh"
 source "$COMPONENT_PATH/environment.sh"
 source "$COMPONENT_PATH/operation.sh"
 source "$COMPONENT_PATH/git.sh"
+source "$COMPONENT_PATH/report.sh"
 source "$COMPONENT_PATH/mail.sh"
 
 # include module

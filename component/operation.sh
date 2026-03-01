@@ -86,15 +86,19 @@ op_initialization() {
   mkdir -p "$LOG_PATH"
   mkdir -p "$REPORT_PATH"
 
-  LOG_TIMESTAMP=$(date '+%Y%m%d%H%M%S')
-  LOG_FILE="$LOG_PATH/sync-${LOG_TIMESTAMP}.log"
-  if [[ ! -f $LOG_FILE ]]; then
-    touch "$LOG_FILE"
-  fi
+  LOG_DATE=$(date '+%Y%m%d')
+  LOG_TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
+  LOG_FILE="$LOG_PATH/${LOG_TIMESTAMP}.log"
+  touch "$LOG_FILE"
 
-  REPORT_FILE="$REPORT_PATH/report-${LOG_TIMESTAMP}.txt"
+  REPORT_FILE="$REPORT_PATH/$LOG_DATE/${LOG_TIMESTAMP}.txt"
+  HTML_BRIEF_REPORT_FILE="$REPORT_PATH/$LOG_DATE/brief-report-${LOG_TIMESTAMP}.html"
+  HTML_FULL_REPORT_FILE="$REPORT_PATH/$LOG_DATE/full-report-${LOG_TIMESTAMP}.html"
+  
+  mkdir -p "$(dirname "$REPORT_FILE")"
   touch "$REPORT_FILE"
-  export LOG_FILE REPORT_FILE
+
+  export LOG_FILE REPORT_FILE HTML_BRIEF_REPORT_FILE HTML_FULL_REPORT_FILE
 
   if [[ ! -f "$DEFAULT_CONFIG_FILE" ]]; then
     op_prompt_checkpoint "Default config file not found, creating from global config template" 
