@@ -174,14 +174,21 @@ op_handle_repo() {
   FN_DOWNLOAD_RELEASE="${2}"
   FN_DOWNLOAD_TAG="${3}"
 
-  local REPO_URL REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD
+  local REPO_URL REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD REPO_IDENTIFIER REPO_CATALOG
   REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
   REPO_SYNC=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repo.sync" | tr -d '"')
   REPO_RELEASE_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".release.download" | tr -d '"')
   REPO_TAG_DOWNLOAD=$(echo "$REPO_RUNTIME_CONFIG" | jq ".tag.download" | tr -d '"')
+  REPO_IDENTIFIER=$(echo "$REPO_RUNTIME_CONFIG" | jq ".identifier" | tr -d '"')
+  REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
 
   if [[ "$REPO_SYNC" == "true" ]]; then
     op_sync_repo "$REPO_RUNTIME_CONFIG"
+  fi
+
+    # use custom identifier if provided, otherwise extract from URL
+  if [[ -z "$REPO_IDENTIFIER" ]] || [[ "$REPO_IDENTIFIER" == "null" ]]; then
+    REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
   fi
 
   if [[ "$REPO_RELEASE_DOWNLOAD" == "true" ]]; then
@@ -279,7 +286,7 @@ op_cleanup_old_versions() {
       for DIR in "${ELIGIBLE_DIRS[@]:KEPT_VERSION_NUM}"; do
         op_prompt_info "Removing old ${TYPE}: $(basename "$DIR")"
         rm -rf "$DIR"
-        REMOVE_COUNT+=1
+        (( REMOVE_COUNT++ ))
       done
     fi
 

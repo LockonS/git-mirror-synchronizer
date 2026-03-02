@@ -97,7 +97,11 @@ data/repo.json  (per-repo)
     "keptVersionNum": "5"
   },
   "notification": {
-    "email": ""
+    "email": {
+      "enable": "false",
+      "sender": "",
+      "receiver": ""
+    }
   }
 }
 ```
@@ -168,7 +172,9 @@ Below is a fully annotated entry. Every field except `repoUrl` is optional.
 | `mirror[].name`               | —        | —                      | Label for the mirror (used in logs)               |
 | `mirror[].repoUrl`            | —        | —                      | Push destination URL                              |
 | `mirror[].forcePush`          | —        | `"false"`              | Pass `--force` when pushing                       |
-| `notification.email`          | —        | `""`                   | Email address for sync result notifications       |
+| `notification.email.enable`   | —        | `"false"`              | Enable email notifications (`"true"`/`"false"`)   |
+| `notification.email.sender`   | —        | `""`                   | Sender address (defaults to `noreply@git-mirror-synchronizer`) |
+| `notification.email.receiver` | —        | `""`                   | Recipient address for sync result notifications   |
 
 #### Custom global config (`data/config.json`) — optional
 
@@ -185,7 +191,11 @@ Override defaults for all repositories without touching individual entries:
     "download": "false"
   },
   "notification": {
-    "email": "admin@example.com"
+    "email": {
+      "enable": "true",
+      "sender": "noreply@example.com",
+      "receiver": "admin@example.com"
+    }
   }
 }
 ```

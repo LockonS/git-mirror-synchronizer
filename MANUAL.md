@@ -82,18 +82,38 @@ config/config.global.json  →  data/config.json  →  data/repo.json (per-repo)
     "download": "true",
     "keptVersionNum": "5"
   },
+  "report": {
+    "s3": {
+      "enable": "false",
+      "profile": "",
+      "bucket": "",
+      "pathPrefix": "",
+      "urlPrefix": ""
+    }
+  },
   "notification": {
-    "email": ""
+    "email": {
+      "enable": "false",
+      "sender": "",
+      "receiver": ""
+    }
   }
 }
 ```
 
-| Field                   | Description                                          |
-|-------------------------|------------------------------------------------------|
-| `*.storagePath`         | Base directory for storing repos / releases / tags   |
-| `*.sync` / `*.download` | Enable or disable the operation (`"true"`/`"false"`) |
-| `*.keptVersionNum`      | Number of versions to retain                         |
-| `notification.email`    | Email address to receive sync result notifications. Leave empty to disable. |
+| Field                          | Description                                          |
+|--------------------------------|------------------------------------------------------|
+| `*.storagePath`                | Base directory for storing repos / releases / tags   |
+| `*.sync` / `*.download`        | Enable or disable the operation (`"true"`/`"false"`) |
+| `*.keptVersionNum`             | Number of versions to retain                         |
+| `notification.email.enable`    | Enable email notifications (`"true"`/`"false"`)      |
+| `notification.email.sender`    | Sender address (defaults to `noreply@git-mirror-synchronizer` if empty) |
+| `notification.email.receiver`  | Recipient address for sync result notifications      |
+| `report.s3.enable`             | Enable S3 HTML report upload (`"true"`/`"false"`)    |
+| `report.s3.profile`            | rclone remote name for S3 access                     |
+| `report.s3.bucket`             | S3 bucket name                                       |
+| `report.s3.pathPrefix`         | Key prefix inside the bucket                         |
+| `report.s3.urlPrefix`          | Public base URL for the uploaded report              |
 
 ### Custom Global — `data/config.json`
 
@@ -108,7 +128,11 @@ Override any global defaults for your environment:
     "download": "false"
   },
   "notification": {
-    "email": "admin@example.com"
+    "email": {
+      "enable": "true",
+      "sender": "noreply@example.com",
+      "receiver": "admin@example.com"
+    }
   }
 }
 ```
@@ -159,18 +183,57 @@ An array of repository objects:
 
 ### Notification
 
-When `notification.email` is set, a sync report is sent to that address after each run.  
-Configure it in `data/config.json` (or `config/config.global.json`) at the global level:
+When email notification is enabled, an HTML sync report is sent after each run.  
+Configure it in `data/config.json` at the global level:
 
 ```json
 {
   "notification": {
-    "email": "admin@example.com"
+    "email": {
+      "enable": "true",
+      "sender": "noreply@example.com",
+      "receiver": "admin@example.com"
+    }
   }
 }
 ```
 
-Leave the value empty (`""`) to disable email notifications.
+| Field                         | Description                                                        |
+|-------------------------------|--------------------------------------------------------------------|
+| `email.enable`                | `"true"` to activate, `"false"` (default) to skip                  |
+| `email.sender`                | From address; defaults to `noreply@git-mirror-synchronizer`        |
+| `email.receiver`              | Recipient address                                                  |
+
+Requires `sendmail` to be available and configured on the host. Set `enable` to `"false"` or omit the block to disable.
+
+### S3 Report Upload
+
+HTML reports can be uploaded to S3-compatible storage via [rclone](https://rclone.org/).  
+Configure it in `data/config.json` at the global level:
+
+```json
+{
+  "report": {
+    "s3": {
+      "enable": "true",
+      "profile": "my-rclone-remote",
+      "bucket": "my-bucket",
+      "pathPrefix": "git-mirror/reports",
+      "urlPrefix": "https://my-bucket.s3.example.com"
+    }
+  }
+}
+```
+
+| Field          | Description                                                                 |
+|----------------|-----------------------------------------------------------------------------|
+| `enable`       | `"true"` to activate, `"false"` (default) to skip                           |
+| `profile`      | rclone remote name (configured via `rclone config`)                         |
+| `bucket`       | S3 bucket name                                                              |
+| `pathPrefix`   | Key prefix inside the bucket (no trailing slash)                            |
+| `urlPrefix`    | Public base URL for the uploaded report (used in email notification links)  |
+
+The uploaded file path is: `{pathPrefix}/report/{YYYYMMDD}/{timestamp}.html`
 
 **Storage paths with catalog:**
 
@@ -317,7 +380,7 @@ Generate a token at: GitHub → Settings → Developer settings → Personal acc
 
 ```bash
 # Linux example
-0 2 * * * cd /path/to/git-mirror-synchronizer/sync-tool.sh
+0 2 * * * /path/to/git-mirror-synchronizer/sync-tool.sh
 ```
 
 ---

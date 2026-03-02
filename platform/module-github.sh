@@ -68,21 +68,14 @@ op_github_validate_response() {
 }
 
 op_github_download_release() {
-  local REPO_URL REPO_IDENTIFIER REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
+  local REPO_URL REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS REPO_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   EXCLUDE_KEYWORDS="${3}"
-  CUSTOM_IDENTIFIER="${4}"
+  REPO_IDENTIFIER="${4}"
   KEPT_VERSION_NUM="${5}"
   REPO_CATALOG="${6}"
   KEPT_VERSIONS="${7}"
-  
-  # use custom identifier if provided, otherwise extract from URL
-  if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
-    REPO_IDENTIFIER="$CUSTOM_IDENTIFIER"
-  else
-    REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
-  fi
 
   # configuration variables
   local REPO_RELEASE_DATA_URL CMD_RETRIEVE_DATA REPO_RELEASE_DATA RELEASE_TAG_NAME RELEASE_STORAGE_PATH
@@ -146,20 +139,13 @@ op_github_download_release() {
 # currently only GitHub is supported, only tar.gz archive will be downloaded
 op_github_download_tag() {
   # parameters
-  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER CUSTOM_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
+  local REPO_URL REPO_RELEASE_STORAGE REPO_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
-  CUSTOM_IDENTIFIER="${3}"
+  REPO_IDENTIFIER="${3}"
   KEPT_VERSION_NUM="${4}"
   REPO_CATALOG="${5}"
   KEPT_VERSIONS="${6}"
-  
-  # use custom identifier if provided, otherwise extract from URL
-  if [[ -n "$CUSTOM_IDENTIFIER" ]] && [[ "$CUSTOM_IDENTIFIER" != "null" ]]; then
-    REPO_IDENTIFIER="$CUSTOM_IDENTIFIER"
-  else
-    REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
-  fi
 
   # configuration variables
   local REPO_TAGS_DATA_URL CMD_RETRIEVE_DATA REPO_TAGS_DATA TAG_STORAGE_PATH
