@@ -43,7 +43,7 @@ op_send_email() {
       return 1
     fi
   else
-    op_prompt_warn "sendmail command not found, email notification skipped"
+    op_prompt_warn "${BOLD}sendmail${NC} command not found, email notification skipped"
     return 1
   fi
 }
@@ -55,9 +55,6 @@ op_process_email_notification() {
   local REPORT_SUCCESS="${3:-0}"
   local REPORT_FAILED="${4:-0}"
   local REPORT_FILE="${5:-}"
-
-  # TODO add url to full report in email content
-  local PUBLIC_REPORT_FILE_URL="${6:-}"
 
   local NOTIFICATION_SENDER=""
   local NOTIFICATION_RECEIVER=""

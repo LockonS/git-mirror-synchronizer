@@ -68,7 +68,7 @@ op_report_write_summary() {
     } >> "$REPORT_FILE"
 
     op_prompt_checkpoint -n "Save task summary report"
-    op_prompt_info "Report file: ${BOLD}${REPORT_FILE}${NC}"
+    op_prompt_info "Export: ${BOLD}${REPORT_FILE}${NC}"
   fi
 }
 
@@ -160,12 +160,43 @@ op_generate_html_report() {
   HTML_BRIEF_REPORT="${BASE_TEMPLATE//\{\{DETAILED_REPORT\}\}/$DETAILED_REPORT_BRIEF}"
   HTML_FULL_REPORT="${BASE_TEMPLATE//\{\{DETAILED_REPORT\}\}/$DETAILED_REPORT_FULL}"
 
+  # Inject full report URL link into brief report only
+  local FULL_REPORT_URL_SECTION=""
+  if [[ -n "$HTML_REPORT_PUBLIC_URL" ]]; then
+    local URL_SECTION_TEMPLATE
+    URL_SECTION_TEMPLATE=$(<"$HTML_DIR/section-full-report-url.html")
+    FULL_REPORT_URL_SECTION="${URL_SECTION_TEMPLATE//\{\{HTML_REPORT_PUBLIC_URL\}\}/$HTML_REPORT_PUBLIC_URL}"
+  fi
+  HTML_BRIEF_REPORT="${HTML_BRIEF_REPORT//\{\{FULL_REPORT_URL_SECTION\}\}/$FULL_REPORT_URL_SECTION}"
+  HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{FULL_REPORT_URL_SECTION\}\}/}"
+
   # Write both report files alongside the text report
   echo -e "$HTML_BRIEF_REPORT" > "$HTML_BRIEF_REPORT_FILE"
   echo -e "$HTML_FULL_REPORT" > "$HTML_FULL_REPORT_FILE"
 }
 
-op_upload_report() {
+# assemble bucket file path and public URL for the generated report file, export as env variable
+op_generate_report_file_path() {
+  local RUNTIME_CONFIG_FILE="${1:-}"
+  local REPORT_FILE_PATH="${2:-}"
+
+  if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
+    S3_PATH_PREFIX=$(jq -r '.report.s3.pathPrefix // ""' "$RUNTIME_CONFIG_FILE")
+    S3_URL_PREFIX=$(jq -r '.report.s3.urlPrefix // ""' "$RUNTIME_CONFIG_FILE")
+
+    # remove trailing '/' if present
+    S3_PATH_PREFIX=$(op_remove_trailing_slash "$S3_PATH_PREFIX")
+    S3_URL_PREFIX=$(op_remove_trailing_slash "$S3_URL_PREFIX")
+  fi
+
+  # assemble and export public report URL as env variable
+  HTML_REPORT_BUCKET_PATH="${S3_PATH_PREFIX}/report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
+  HTML_REPORT_PUBLIC_URL="${S3_URL_PREFIX}/${HTML_REPORT_BUCKET_PATH}"
+  export HTML_REPORT_BUCKET_PATH HTML_REPORT_PUBLIC_URL
+}
+
+# Upload report file to S3 if enabled in config, and export public URL for email notification
+op_upload_report_s3() {
   local RUNTIME_CONFIG_FILE="${1:-}"
   local REPORT_FILE_PATH="${2:-}"
 
@@ -174,7 +205,6 @@ op_upload_report() {
   local S3_BUCKET="" 
   local S3_PATH_PREFIX="" 
   local S3_URL_PREFIX=""
-  local REMOTE_FILE_PATH=""
   local CMD_UPLOAD_FILE=""
 
   if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
@@ -183,6 +213,10 @@ op_upload_report() {
     S3_BUCKET=$(jq -r '.report.s3.bucket // ""' "$RUNTIME_CONFIG_FILE")
     S3_PATH_PREFIX=$(jq -r '.report.s3.pathPrefix // ""' "$RUNTIME_CONFIG_FILE")
     S3_URL_PREFIX=$(jq -r '.report.s3.urlPrefix // ""' "$RUNTIME_CONFIG_FILE")
+    
+    # remove trailing '/' if present
+    S3_PATH_PREFIX=$(op_remove_trailing_slash "$S3_PATH_PREFIX")
+    S3_URL_PREFIX=$(op_remove_trailing_slash "$S3_URL_PREFIX")
   fi
 
   if [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]]; then
@@ -209,19 +243,10 @@ op_upload_report() {
     return 1
   fi
 
-  # remove trailing '/' from if present
-  [[ "$S3_PATH_PREFIX" == */ ]] && S3_PATH_PREFIX="${S3_PATH_PREFIX%/}"
-  [[ "$S3_URL_PREFIX" == */ ]] && S3_URL_PREFIX="${S3_URL_PREFIX%/}"
-
   op_prompt_checkpoint -n "Upload HTML reports to S3"
 
-  REMOTE_FILE_PATH="${S3_PATH_PREFIX}/report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
-
-  # assemble and export public report URL for email notification
-  PUBLIC_REPORT_FILE_URL="${S3_URL_PREFIX}/${REMOTE_FILE_PATH}"
-  export PUBLIC_REPORT_FILE_URL
-
-  CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH ${S3_PROFILE}:${S3_BUCKET}/${REMOTE_FILE_PATH}"
+  CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH ${S3_PROFILE}:${S3_BUCKET}/${HTML_REPORT_BUCKET_PATH}"
   op_run_cmd "$CMD_UPLOAD_FILE"
-  op_prompt_info "Uploaded: ${BOLD}${REPORT_FILE_PATH}${NC} → ${BOLD}${REMOTE_FILE_PATH}${NC}"
+  op_prompt_info "Report: ${BOLD}${REPORT_FILE_PATH}${NC}"
+  op_prompt_info "Upload: ${BOLD}${HTML_REPORT_BUCKET_PATH}${NC}"
 }

@@ -186,7 +186,7 @@ op_handle_repo() {
     op_sync_repo "$REPO_RUNTIME_CONFIG"
   fi
 
-    # use custom identifier if provided, otherwise extract from URL
+  # use custom identifier if provided, otherwise extract from URL
   if [[ -z "$REPO_IDENTIFIER" ]] || [[ "$REPO_IDENTIFIER" == "null" ]]; then
     REPO_IDENTIFIER=$(op_github_extract_repo_identifier "$REPO_URL")
   fi
@@ -230,7 +230,6 @@ op_dispatch_repo_handler() {
 
 # cleanup old versions, keep only the newest N versions and specific pinned versions
 op_cleanup_old_versions() {
-
   local STORAGE_PATH REPO_IDENTIFIER KEPT_VERSION_NUM TYPE KEPT_VERSIONS
   STORAGE_PATH="${1}"
   REPO_IDENTIFIER="${2}"

@@ -15,6 +15,7 @@ export REPORT_PATH="$TEMP_PATH/report"
 # include component
 source "$COMPONENT_PATH/common.sh"
 source "$COMPONENT_PATH/environment.sh"
+source "$COMPONENT_PATH/util.sh"
 source "$COMPONENT_PATH/operation.sh"
 source "$COMPONENT_PATH/git.sh"
 source "$COMPONENT_PATH/report.sh"
@@ -209,14 +210,17 @@ sync_tool_entry() {
   # print and save report summary
   op_report_write_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED"
 
+  # assemble bucket file path and public URL for the generated report file, export as env variable
+  op_generate_report_file_path "$RUNTIME_CONFIG_FILE" "$REPORT_FILE"
+
   # generate HTML report files
   op_generate_html_report "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
 
   # upload HTML report
-  op_upload_report "$RUNTIME_CONFIG_FILE" "$HTML_FULL_REPORT_FILE"
+  op_upload_report_s3 "$RUNTIME_CONFIG_FILE" "$HTML_FULL_REPORT_FILE"
 
   # send email notification with report
-  op_process_email_notification "$RUNTIME_CONFIG_FILE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE" "$PUBLIC_REPORT_FILE_URL"
+  op_process_email_notification "$RUNTIME_CONFIG_FILE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
 }
 
 op_initialization
