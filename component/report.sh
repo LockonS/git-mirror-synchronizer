@@ -102,7 +102,7 @@ op_generate_html_report() {
     ITEM_TEMPLATE=$(<"$HTML_DIR/section-detail-item.html")
     while IFS= read -r line; do
       if [[ "$line" == *"FAIL"* ]]; then
-        # Strip ANSI color codes
+        # Strip ANSI color codes TODO fix issue or consider assemble text directly
         line=$(printf '%s' "$line" | sed $'s/\033\\[[0-9;]*m//g')
         # Escape HTML special characters
         line="${line//&/&amp;}"
