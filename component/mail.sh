@@ -1,7 +1,5 @@
 #!/usr/bin/env zsh
 
-# Email notification functions for git-mirror-synchronizer
-
 # send email notification using sendmail
 op_send_email() {
   local SENDER="${1:-}"
@@ -11,7 +9,8 @@ op_send_email() {
 
   # Skip if email is empty or not configured
   if [[ -z "$RECIPIENT" ]]; then
-    op_prompt_debug "Email notification skipped: no recipient configured"
+    echo -e ""
+    op_prompt_warn "Email notification skipped: no recipient configured"
     return 0
   fi
 
@@ -67,7 +66,7 @@ op_process_email_notification() {
   fi
 
   if [[ "$NOTIFICATION_ENABLE" != "true" ]]; then
-    op_prompt_info "Email notification skipped: not enabled"
+    op_prompt_checkpoint -n -c "${YELLOW}" "Email notification not enabled, skipping email sending"
     return 0
   fi
   

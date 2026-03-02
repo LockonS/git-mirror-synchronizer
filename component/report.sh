@@ -224,7 +224,7 @@ op_upload_report_s3() {
   fi
 
   if [[ "$S3_ENABLE" != "true" ]]; then
-    op_prompt_info "S3 report upload skipped: not enabled"
+    op_prompt_checkpoint -n -c "${YELLOW}" "S3 report upload not enabled, skipping uploading operation"
     return 0
   fi
 
