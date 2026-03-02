@@ -244,9 +244,10 @@ op_upload_report_s3() {
   fi
 
   op_prompt_checkpoint -n "Upload HTML reports to S3"
-
-  CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH ${S3_PROFILE}:${S3_BUCKET}/${HTML_REPORT_BUCKET_PATH}"
+  HTML_REPORT_BUCKET_FULL_PATH="${S3_PROFILE}:${S3_BUCKET}/${HTML_REPORT_BUCKET_PATH}"
+  CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH ${HTML_REPORT_BUCKET_FULL_PATH}"
+  
   op_run_cmd "$CMD_UPLOAD_FILE"
   op_prompt_info "Report: ${BOLD}${REPORT_FILE_PATH}${NC}"
-  op_prompt_info "Upload: ${BOLD}${HTML_REPORT_BUCKET_PATH}${NC}"
+  op_prompt_info "Upload: ${BOLD}${HTML_REPORT_BUCKET_FULL_PATH}${NC}"
 }
