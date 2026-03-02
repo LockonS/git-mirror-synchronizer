@@ -190,7 +190,7 @@ op_generate_report_file_path() {
   fi
 
   # assemble and export public report URL as env variable
-  HTML_REPORT_BUCKET_PATH="${S3_PATH_PREFIX}/report/${LOG_DATE}/$(basename "$REPORT_FILE_PATH")"
+  HTML_REPORT_BUCKET_PATH="${S3_PATH_PREFIX}/report/${LOG_DATE}/report-${LOG_TIMESTAMP}.html"
   HTML_REPORT_PUBLIC_URL="${S3_URL_PREFIX}/${HTML_REPORT_BUCKET_PATH}"
   export HTML_REPORT_BUCKET_PATH HTML_REPORT_PUBLIC_URL
 }
@@ -224,7 +224,7 @@ op_upload_report_s3() {
   fi
 
   if [[ "$S3_ENABLE" != "true" ]]; then
-    op_prompt_debug "S3 report upload skipped: not enabled"
+    op_prompt_info "S3 report upload skipped: not enabled"
     return 0
   fi
 

@@ -67,7 +67,7 @@ op_process_email_notification() {
   fi
 
   if [[ "$NOTIFICATION_ENABLE" != "true" ]]; then
-    op_prompt_debug "Email notification skipped: not enabled"
+    op_prompt_info "Email notification skipped: not enabled"
     return 0
   fi
   
