@@ -102,8 +102,8 @@ op_generate_html_report() {
     ITEM_TEMPLATE=$(<"$HTML_DIR/section-detail-item.html")
     while IFS= read -r line; do
       if [[ "$line" == *"FAIL"* ]]; then
-        # Strip ANSI/tput color codes (ESC CSI sequences + SI char emitted by tput sgr0)
-        line=$(printf '%s' "$line" | sed $'s/\033\\[[0-9;]*[A-Za-z]//g; s/\017//g')
+        # Strip ANSI/tput color codes (CSI, ESC(B from tput sgr0, and SI control char)
+        line=$(printf '%s' "$line" | sed $'s/\033\\[[0-9;]*[A-Za-z]//g; s/\033(B//g; s/\017//g')
         # Escape HTML special characters
         line="${line//&/&amp;}"
         line="${line//</&lt;}"

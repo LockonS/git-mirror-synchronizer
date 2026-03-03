@@ -111,12 +111,10 @@ op_{platform}_download_release() {
 
   # assemble auth header if access token is available
   if [[ -n "${PLATFORM}_ACCESS_TOKEN" ]]; then
-    # TODO: set AUTH_REQUEST_HEADER with the correct auth format for {PLATFORM}
     # AUTH_REQUEST_HEADER="-H 'Authorization: Bearer ${PLATFORM}_ACCESS_TOKEN'"
     AUTH_REQUEST_HEADER=""
   fi
 
-  # TODO: implement {PLATFORM} release download
   # Suggested steps:
   #   1. Assemble the API URL for the latest release
   #   2. Call: op_run_cmd_with_result "<curl command>"
@@ -138,7 +136,6 @@ op_{platform}_download_release_asset() {
   ASSET_DATA="${2}"
   EXCLUDE_KEYWORDS="${3}"
 
-  # TODO: implement {PLATFORM} release asset download
   # Suggested steps:
   #   1. Extract ASSET_NAME and ASSET_DOWNLOAD_URL from $ASSET_DATA via jq
   #   2. Check EXCLUDE_KEYWORDS with IFS=',' read -A and skip if matched
@@ -176,12 +173,10 @@ op_{platform}_download_tag() {
 
   # assemble auth header if access token is available
   if [[ -n "${PLATFORM}_ACCESS_TOKEN" ]]; then
-    # TODO: set AUTH_REQUEST_HEADER with the correct auth format for {PLATFORM}
     # AUTH_REQUEST_HEADER="-H 'Authorization: Bearer ${PLATFORM}_ACCESS_TOKEN'"
     AUTH_REQUEST_HEADER=""
   fi
 
-  # TODO: implement {PLATFORM} tag download
   # Suggested steps:
   #   1. Assemble the API URL for the tags list
   #   2. Call: op_run_cmd_with_result "<curl command>"
