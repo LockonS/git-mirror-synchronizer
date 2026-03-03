@@ -126,11 +126,17 @@ op_push_remote_repo() {
 
   # run command
   op_run_tracked_cmd "$CMD_GIT_RESET_HEADER"
-  if [[ "$MIRROR_FORCE_PUSH" == "true" ]]; then
-    op_prompt_warn "Force push enabled for remote ${MIRROR_REMOTE_REPO_NAME}"
-    op_run_tracked_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"
-  else
-    op_run_tracked_cmd "$CMD_GIT_PUSH_TO_MIRROR"
+  # run push command, force push if rejected and force push enabled
+  if ! op_run_cmd "$CMD_GIT_PUSH_TO_MIRROR"; then
+    REPO_PROCESS_STATUS="failed"
+  fi
+  
+  # when previous push command failed and force push is enabled, retry with force push
+  if [[ "$REPO_PROCESS_STATUS" == "failed" ]] && [[ "$MIRROR_FORCE_PUSH" == "true" ]]; then
+    op_prompt_warn "Push failed, retrying with force push for remote ${MIRROR_REMOTE_REPO_NAME}"
+    if op_run_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"; then
+      REPO_PROCESS_STATUS="success"
+    fi
   fi
 }
 

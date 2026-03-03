@@ -102,8 +102,8 @@ op_generate_html_report() {
     ITEM_TEMPLATE=$(<"$HTML_DIR/section-detail-item.html")
     while IFS= read -r line; do
       if [[ "$line" == *"FAIL"* ]]; then
-        # Strip ANSI color codes TODO fix issue or consider assemble text directly
-        line=$(printf '%s' "$line" | sed $'s/\033\\[[0-9;]*m//g')
+        # Strip ANSI/tput color codes (ESC CSI sequences + SI char emitted by tput sgr0)
+        line=$(printf '%s' "$line" | sed $'s/\033\\[[0-9;]*[A-Za-z]//g; s/\017//g')
         # Escape HTML special characters
         line="${line//&/&amp;}"
         line="${line//</&lt;}"
@@ -246,7 +246,7 @@ op_upload_report_s3() {
   op_prompt_checkpoint -n "Upload HTML reports to S3"
   HTML_REPORT_BUCKET_FULL_PATH="${S3_PROFILE}:${S3_BUCKET}/${HTML_REPORT_BUCKET_PATH}"
   CMD_UPLOAD_FILE="rclone copyto $REPORT_FILE_PATH ${HTML_REPORT_BUCKET_FULL_PATH}"
-  
+
   op_run_cmd "$CMD_UPLOAD_FILE"
   op_prompt_info "Report: ${BOLD}${REPORT_FILE_PATH}${NC}"
   op_prompt_info "Upload: ${BOLD}${HTML_REPORT_BUCKET_FULL_PATH}${NC}"
