@@ -28,6 +28,8 @@ op_report_append_repo_result() {
   local TOTAL="${2}"
   local REPO_URL="${3}"
   local STATUS="${4}"
+  
+  echo -e ""
   if [[ "$STATUS" == "PASS" ]]; then
     echo -e "[${INDEX}/${TOTAL}] ${GREEN}${BOLD}${STATUS}${NC}   ${REPO_URL}"
   else
