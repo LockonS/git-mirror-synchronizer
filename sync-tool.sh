@@ -49,7 +49,7 @@ sync_tool_manual() {
 # Returns: 0 on success, 1 if no failed repos found
 op_load_failed_repos_to_filter() {
   local REPORT_FILE="${1}"
-  local -n _TARGET_ARRAY="${2}"
+  typeset -n _TARGET_ARRAY="${2}"
 
   op_prompt_checkpoint -n "Last run report: ${BOLD}${REPORT_FILE}${NC}"
 
