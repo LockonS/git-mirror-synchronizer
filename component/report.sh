@@ -164,7 +164,13 @@ op_generate_html_report() {
     STATUS_NOTE_SECTION="${STATUS_NOTE_SECTION//\{\{STATUS_NOTE\}\}/$STATUS_NOTE}"
   fi
   HTML_BRIEF_REPORT="${HTML_BRIEF_REPORT//\{\{STATUS_NOTE_SECTION\}\}/$STATUS_NOTE_SECTION}"
-  HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{STATUS_NOTE_SECTION\}\}/}"
+  
+  # Include status note in full report only on success; omit it when there are failures
+  if [[ ${REPORT_FAILED} -eq 0 ]]; then
+    HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{STATUS_NOTE_SECTION\}\}/$STATUS_NOTE_SECTION}"
+  else
+    HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{STATUS_NOTE_SECTION\}\}/}"
+  fi
 
   # Inject full report URL link into brief report only
   local FULL_REPORT_URL_SECTION=""

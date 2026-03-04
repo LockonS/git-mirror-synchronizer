@@ -29,7 +29,7 @@ op_sync_repo() {
   fi
 
   # print repo init message
-  op_prompt_checkpoint "Process repo ${BOLD}${GREEN}${REPO_NAME}${NC}"
+  op_prompt_checkpoint -n "Process repo ${BOLD}${GREEN}${REPO_NAME}${NC}"
   op_prompt_info "Remote URL: ${BOLD}${REPO_URL}${NC}"
   op_prompt_info "Storage Path: ${BOLD}${REPO_LOCAL_PATH}${NC}"
   echo -e ""
