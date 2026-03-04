@@ -295,7 +295,7 @@ chmod 600 data/github/github-access-token
 | `-e, --end-index INDEX`   | Stop before repository index (0-based)                    |
 | `-m, --mode MODE`         | Execution mode: `all`, `update`, `sync`, `release`, `tag` |
 | `--continue`              | Resume from last saved progress                           |
-| `--retry`                 | Retry failed repos from the last run report               |
+| `--retry`                    | Retry failed repos listed in `temp-files/failed-repo.txt` from the last run |
 | `--dry-run`               | Preview operations without executing                      |
 | `-h, --help`              | Display help manual                                       |
 
@@ -324,7 +324,7 @@ git-mirror-synchronizer/
 │   ├── repo.json      # repository list
 │   ├── config.json    # optional global overrides
 │   └── github/github-access-token
-├── module/            # platform modules (github, gitlab, gitee)
+├── platform/          # platform modules (github, gitlab, general)
 └── template/          # example configuration
 
 /opt/git/              # default storage root

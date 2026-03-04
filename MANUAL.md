@@ -274,7 +274,7 @@ Generate a token at: GitHub → Settings → Developer settings → Personal acc
 | `-m MODE`    | Execution mode (see below)                              |
 | `--dry-run`  | Preview operations without executing                    |
 | `--continue` | Resume from last saved progress                         |
-| `--retry`    | Retry failed repos from the last run report             |
+| `--retry`    | Retry failed repos listed in `temp-files/failed-repo.txt` from the last run |
 | `-h`         | Show help                                               |
 
 ### Execution Modes
@@ -297,7 +297,7 @@ Generate a token at: GitHub → Settings → Developer settings → Personal acc
 ./sync-tool.sh -m tag                                   # Download tags only
 ./sync-tool.sh -m update                                # Local pull only
 ./sync-tool.sh --continue                               # Resume interrupted run
-./sync-tool.sh --retry                                  # Retry repos that failed in the last run
+./sync-tool.sh --retry                                  # Retry repos that failed in the last run (reads temp-files/failed-repo.txt)
 ./sync-tool.sh -r https://github.com/user/repo          # Process a single repo (also matches .git variant)
 ./sync-tool.sh -r url1 -r url2                          # Process multiple specific repos
 ./sync-tool.sh -r url1,url2,url3                        # Same, comma-separated in one flag
@@ -314,7 +314,7 @@ Generate a token at: GitHub → Settings → Developer settings → Personal acc
 ./sync-tool.sh -s 75      
 ```
 
-> `--continue` saves progress to `temp/progress-index` and deletes it on successful completion.
+> `--continue` saves progress to `temp-files/progress-index` and deletes it on successful completion.
 
 ---
 
