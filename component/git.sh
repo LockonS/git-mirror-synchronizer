@@ -261,9 +261,8 @@ op_cleanup_old_versions() {
     fi
 
     # separate dirs into eligible-for-cleanup and pinned
-    local ELIGIBLE_DIRS=()
+    local ELIGIBLE_DIRS=() DIR_NAME="" IS_PINNED=false
     for DIR in "${VERSION_DIRS[@]}"; do
-      local DIR_NAME IS_PINNED
       DIR_NAME=$(basename "$DIR")
       IS_PINNED=false
       for PINNED_VER in "${PINNED_VERSIONS[@]}"; do
