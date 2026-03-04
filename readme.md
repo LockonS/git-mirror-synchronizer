@@ -290,11 +290,12 @@ chmod 600 data/github/github-access-token
 |---------------------------|-----------------------------------------------------------|
 | `-f, --config-file FILE`  | Custom global configuration file                          |
 | `-d, --data-file FILE`    | Repository data file                                      |
-| `-r, --repo-url URL`      | Process a single repository by URL                        |
+| `-r, --repo-url URL`      | Filter by repoUrl; repeatable (`-r url1 -r url2`) or comma-separated (`-r url1,url2`). Also matches `url.git` if no `.git` suffix is given. |
 | `-s, --start-index INDEX` | Start from repository index (0-based)                     |
 | `-e, --end-index INDEX`   | Stop before repository index (0-based)                    |
 | `-m, --mode MODE`         | Execution mode: `all`, `update`, `sync`, `release`, `tag` |
 | `--continue`              | Resume from last saved progress                           |
+| `--retry`                 | Retry failed repos from the last run report               |
 | `--dry-run`               | Preview operations without executing                      |
 | `-h, --help`              | Display help manual                                       |
 

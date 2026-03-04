@@ -268,12 +268,13 @@ Generate a token at: GitHub → Settings → Developer settings → Personal acc
 |--------------|---------------------------------------------------------|
 | `-f FILE`    | Custom global config file (default: `data/config.json`) |
 | `-d FILE`    | Repository data file (default: `data/repo.json`)        |
-| `-r URL`     | Process a single repository by URL                      |
+| `-r URL`     | Filter by repoUrl; repeatable (`-r url1 -r url2`) or comma-separated (`-r url1,url2`). Also matches `url.git` if no `.git` suffix is given. |
 | `-s INDEX`   | Start index, 0-based inclusive                          |
 | `-e INDEX`   | End index, 0-based exclusive                            |
 | `-m MODE`    | Execution mode (see below)                              |
 | `--dry-run`  | Preview operations without executing                    |
 | `--continue` | Resume from last saved progress                         |
+| `--retry`    | Retry failed repos from the last run report             |
 | `-h`         | Show help                                               |
 
 ### Execution Modes
@@ -289,15 +290,19 @@ Generate a token at: GitHub → Settings → Developer settings → Personal acc
 ### Common Commands
 
 ```bash
-./sync-tool.sh                            # Sync everything
-./sync-tool.sh --dry-run                  # Preview only
-./sync-tool.sh -m sync                    # Repo + mirrors, no downloads
-./sync-tool.sh -m release                 # Download releases only
-./sync-tool.sh -m tag                     # Download tags only
-./sync-tool.sh -m update                  # Local pull only
-./sync-tool.sh --continue                 # Resume interrupted run
-./sync-tool.sh -s 0 -e 25                 # Process first 25 repos (batch)
-./sync-tool.sh -f custom.json -d repos.json  # Custom config files
+./sync-tool.sh                                          # Sync everything
+./sync-tool.sh --dry-run                                # Preview only
+./sync-tool.sh -m sync                                  # Repo + mirrors, no downloads
+./sync-tool.sh -m release                               # Download releases only
+./sync-tool.sh -m tag                                   # Download tags only
+./sync-tool.sh -m update                                # Local pull only
+./sync-tool.sh --continue                               # Resume interrupted run
+./sync-tool.sh --retry                                  # Retry repos that failed in the last run
+./sync-tool.sh -r https://github.com/user/repo          # Process a single repo (also matches .git variant)
+./sync-tool.sh -r url1 -r url2                          # Process multiple specific repos
+./sync-tool.sh -r url1,url2,url3                        # Same, comma-separated in one flag
+./sync-tool.sh -s 0 -e 25                               # Process first 25 repos (batch)
+./sync-tool.sh -f custom.json -d repos.json             # Custom config files
 ```
 
 **Batch processing** (split 100 repos into 4 parallel runs):

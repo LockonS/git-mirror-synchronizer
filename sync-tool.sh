@@ -32,12 +32,38 @@ sync_tool_manual() {
   echo "       -h,--help,help             Show manual page"
   echo "       -f,--config-file file      Specify input config file, default to path-to-script/data/config.json"
   echo "       -d,--data-file   file      Specify input data file, default to path-to-script/data/repo.json"
-  echo "       -r,--repo-url    url       Process a single repository by its repoUrl"
+  echo "       -r,--repo-url    url       Filter by repoUrl; repeatable (-r url1 -r url2) or comma-separated (-r url1,url2)"
+  echo "                                  If url does not end with .git, also matches url.git"
   echo "       -s,--start-index index     Start processing from repository index (0-based)"
   echo "       -e,--end-index   index     Stop processing before repository index (0-based)"
   echo "       -m,--mode        mode      Optional, default to all. [all| update| sync | release | tag]"
   echo "       --continue                 Resume from the last saved progress index"
+  echo "       --retry                    Retry failed repos from the last run report"
   echo "       --dry-run                  Enable dry run mode (no actual changes)"
+}
+
+# extract failed repo URLs from a report file into a target array
+# Parameters: REPORT_FILE, TARGET_ARRAY_NAME
+# Returns: 0 on success, 1 if no failed repos found
+op_load_failed_repos_to_filter() {
+  local REPORT_FILE="${1}"
+  local -n _TARGET_ARRAY="${2}"
+
+  op_prompt_checkpoint -n "Last run report: ${BOLD}${REPORT_FILE}${NC}"
+
+  local _FAILED_URLS
+  _FAILED_URLS=$(grep 'FAIL' "$REPORT_FILE" \
+    | sed $'s/\033\\[[0-9;]*[A-Za-z]//g; s/\033(B//g; s/\017//g' \
+    | awk '{print $NF}')
+
+  if [[ -z "$_FAILED_URLS" ]]; then
+    op_prompt_info "No failed repos found in last report, nothing to retry"
+    return 1
+  fi
+
+  while IFS= read -r _URL; do
+    [[ -n "$_URL" ]] && _TARGET_ARRAY+=("$_URL")
+  done <<<"$_FAILED_URLS"
 }
 
 # shellcheck disable=SC2034
@@ -46,11 +72,13 @@ sync_tool_entry() {
   local RUNTIME_DATA_FILE="$DEFAULT_DATA_FILE"
   local EXECUTION_MODE="all"
   local CONTINUE_MODE="false"
-  local FILTER_REPO_URL=""
+  local RETRY_MODE="false"
+  local DRY_RUN="false"
+  local FILTER_REPO_URLS=()
   local PROGRESS_INDEX_FILE="$TEMP_PATH/progress-index"
   local START_INDEX=""
   local END_INDEX=""
-
+  
   while [ $# -gt 0 ]; do
     case ${1} in
       '-h' | '--help' | 'help')
@@ -68,7 +96,7 @@ sync_tool_entry() {
         shift
         ;;
       '-r' | '--repo-url')
-        FILTER_REPO_URL=${2}
+        FILTER_REPO_URLS+=("${2}")
         shift
         shift
         ;;
@@ -93,6 +121,10 @@ sync_tool_entry() {
         ;;
       '--continue')
         CONTINUE_MODE="true"
+        shift
+        ;;
+      '--retry')
+        RETRY_MODE="true"
         shift
         ;;
       *) shift ;;
@@ -145,6 +177,21 @@ sync_tool_entry() {
   REPO_LENGTH=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq '. | length')
   REPO_MATCHED="false"
 
+  # if running in retry mode
+  if [[ "$RETRY_MODE" == "true" ]]; then
+    # find the most recent report file and print it
+    local LAST_REPORT_FILE
+    LAST_REPORT_FILE=$(find "$REPORT_PATH" -name "*.txt" -type f 2>/dev/null | sort | tail -n 1)
+
+    if [[ -n "$LAST_REPORT_FILE" ]]; then
+      op_load_failed_repos_to_filter "$LAST_REPORT_FILE" FILTER_REPO_URLS || return 0
+      op_prompt_info "Retrying ${BOLD}${#FILTER_REPO_URLS[@]}${NC} failed repo(s) from last run"
+    else
+      op_prompt_warn "No previous report found in ${BOLD}${REPORT_PATH}${NC}"
+      return 0
+    fi
+  fi
+
   # determine start index
   if [[ "$CONTINUE_MODE" == "true" ]]; then
     if [[ -f "$PROGRESS_INDEX_FILE" ]]; then
@@ -167,21 +214,29 @@ sync_tool_entry() {
   fi
 
   # write report header
-  op_report_write_header "$EXECUTION_MODE" "$START_INDEX" "$END_INDEX" "$FILTER_REPO_URL"
+  local FILTER_REPO_URL_DISPLAY="${(j:, :)FILTER_REPO_URLS}"
+  op_report_write_header "$EXECUTION_MODE" "$START_INDEX" "$END_INDEX" "$FILTER_REPO_URL_DISPLAY"
 
   for ((REPO_INDEX = START_INDEX; REPO_INDEX < END_INDEX; REPO_INDEX++)); do
     REPO_DATA=$(echo "$RUNTIME_REPO_DATA_CONTENT" | jq ".[${REPO_INDEX}]")
     PROGRESS_INDEX=$((REPO_INDEX + 1))
     REPO_URL=$(echo "$REPO_DATA" | jq ".repoUrl" | tr -d '"')
 
-    # filter by repoUrl if --repo-url is specified; also match with .git suffix if FILTER_REPO_URL has none
-    if [[ -n "$FILTER_REPO_URL" ]] && [[ "$REPO_URL" != "$FILTER_REPO_URL" ]] && \
-       { [[ "$FILTER_REPO_URL" == *.git ]] || [[ "$REPO_URL" != "${FILTER_REPO_URL}.git" ]]; }; then
-      continue
+    # filter by repoUrl if --repo-url is specified; also match with .git suffix if a filter URL has none
+    if [[ ${#FILTER_REPO_URLS[@]} -gt 0 ]]; then
+      local MATCHED_FILTER="false"
+      for _FILTER_URL in "${FILTER_REPO_URLS[@]}"; do
+        if [[ "$REPO_URL" == "$_FILTER_URL" ]] || \
+           { [[ "$_FILTER_URL" != *.git ]] && [[ "$REPO_URL" == "${_FILTER_URL}.git" ]]; }; then
+          MATCHED_FILTER="true"
+          break
+        fi
+      done
+      [[ "$MATCHED_FILTER" != "true" ]] && continue
     fi
 
     REPO_MATCHED="true"
-    [[ -z "$FILTER_REPO_URL" ]] && echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
+    [[ ${#FILTER_REPO_URLS[@]} -eq 0 ]] && echo -e "\n--------------------- Progress $PROGRESS_INDEX/$REPO_LENGTH ---------------------\n"
 
     # dispatch repo data to operation module and get processing result
     op_dispatch_repo_handler "$REPO_DATA"
@@ -196,13 +251,13 @@ sync_tool_entry() {
       op_report_append_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "PASS"
     fi
 
-    [[ -z "$FILTER_REPO_URL" ]] && echo "$PROGRESS_INDEX" > "$PROGRESS_INDEX_FILE"
+    [[ ${#FILTER_REPO_URLS[@]} -eq 0 ]] && echo "$PROGRESS_INDEX" > "$PROGRESS_INDEX_FILE"
   
   done
 
   # warn if --repo-url matched nothing
-  if [[ -n "$FILTER_REPO_URL" ]] && [[ "$REPO_MATCHED" != "true" ]]; then
-    op_prompt_warn "No repository matched repoUrl: ${BOLD}${FILTER_REPO_URL}${NC}"
+  if [[ ${#FILTER_REPO_URLS[@]} -gt 0 ]] && [[ "$REPO_MATCHED" != "true" ]]; then
+    op_prompt_warn "No repository matched repoUrl: ${BOLD}${FILTER_REPO_URL_DISPLAY}${NC}"
   fi
 
   # clear progress file on successful completion
@@ -220,8 +275,10 @@ sync_tool_entry() {
   # upload HTML report
   op_upload_report_s3 "$RUNTIME_CONFIG_FILE" "$HTML_FULL_REPORT_FILE"
 
-  # send email notification with report
-  op_process_email_notification "$RUNTIME_CONFIG_FILE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
+  # send email notification with report (skipped when filtering by specific repo URLs)
+  if [[ ${#FILTER_REPO_URLS[@]} -eq 0 ]]; then
+    op_process_email_notification "$RUNTIME_CONFIG_FILE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
+  fi
 }
 
 op_initialization
