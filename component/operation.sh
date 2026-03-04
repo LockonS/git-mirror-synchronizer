@@ -80,4 +80,3 @@ op_apply_execution_mode() {
       ;;
   esac
 }
-

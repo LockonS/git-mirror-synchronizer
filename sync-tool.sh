@@ -44,30 +44,6 @@ sync_tool_manual() {
   echo "       --dry-run                  Enable dry run mode (no actual changes)"
 }
 
-# extract failed repo URLs from a report file into a target array
-# Parameters: REPORT_FILE, TARGET_ARRAY_NAME
-# Returns: 0 on success, 1 if no failed repos found
-op_load_failed_repos_to_filter() {
-  local REPORT_FILE="${1}"
-  typeset -n _TARGET_ARRAY="${2}"
-
-  op_prompt_checkpoint -n "Last run report: ${BOLD}${REPORT_FILE}${NC}"
-
-  local _FAILED_URLS
-  _FAILED_URLS=$(grep 'FAIL' "$REPORT_FILE" \
-    | sed $'s/\033\\[[0-9;]*[A-Za-z]//g; s/\033(B//g; s/\017//g' \
-    | awk '{print $NF}')
-
-  if [[ -z "$_FAILED_URLS" ]]; then
-    op_prompt_info "No failed repos found in last report, nothing to retry"
-    return 1
-  fi
-
-  while IFS= read -r _URL; do
-    [[ -n "$_URL" ]] && _TARGET_ARRAY+=("$_URL")
-  done <<<"$_FAILED_URLS"
-}
-
 # shellcheck disable=SC2034
 sync_tool_entry() {
   local RUNTIME_CONFIG_FILE="$DEFAULT_CONFIG_FILE"
@@ -180,16 +156,14 @@ sync_tool_entry() {
 
   # if running in retry mode
   if [[ "$RETRY_MODE" == "true" ]]; then
-    # find the most recent report file and print it
-    local LAST_REPORT_FILE
-    LAST_REPORT_FILE=$(find "$REPORT_PATH" -name "*.txt" -type f 2>/dev/null | sort | tail -n 1)
-
-    if [[ -n "$LAST_REPORT_FILE" ]]; then
-      op_load_failed_repos_to_filter "$LAST_REPORT_FILE" FILTER_REPO_URLS || return 0
+    if [[ -f "$FAILED_REPO_FILE" && -s "$FAILED_REPO_FILE" ]]; then
+      op_prompt_checkpoint -n "Loading failed repos from: ${BOLD}${FAILED_REPO_FILE}${NC}"
+      while IFS= read -r FAIL_REPO_URL; do
+        [[ -n "$FAIL_REPO_URL" ]] && FILTER_REPO_URLS+=("$FAIL_REPO_URL")
+      done < "$FAILED_REPO_FILE"
       op_prompt_info "Retrying ${BOLD}${#FILTER_REPO_URLS[@]}${NC} failed repo(s) from last run"
     else
-      op_prompt_warn "No previous report found in ${BOLD}${REPORT_PATH}${NC}"
-      return 0
+      op_prompt_debug "No failed repos file found or it is empty: ${BOLD}${FAILED_REPO_FILE}${NC}"
     fi
   fi
 
@@ -291,3 +265,4 @@ op_initialization
 
 # Pipe all output from sync_tool_entry to both console and log file
 sync_tool_entry "$@" 2>&1 | tee -a "$LOG_FILE"
+
