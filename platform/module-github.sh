@@ -183,18 +183,21 @@ op_github_download_tag() {
 
   # extract release tag name
   TAG_NAME=$(jq -r ".name" <<<"$ASSET_DATA")
-  ASSET_NAME="${TAG_NAME}.tar.gz"
 
-  # extract release tag name
+  # sanitize tag name for filesystem use: replace '/' and spaces with '-'
+  local SAFE_TAG_NAME="${TAG_NAME//\//-}"
+  SAFE_TAG_NAME="${SAFE_TAG_NAME// /-}"
+  ASSET_NAME="${SAFE_TAG_NAME}.tar.gz"
+
   ASSET_DOWNLOAD_URL=$(jq -r ".tarball_url" <<<"$ASSET_DATA")
 
   # print downloading assets message
   # check if the corresponding tag resource was already downloaded
   # include catalog in storage path
   if [[ -n "$REPO_CATALOG" ]] && [[ "$REPO_CATALOG" != "null" ]]; then
-    TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_CATALOG}/${REPO_IDENTIFIER}/${TAG_NAME}"
+    TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_CATALOG}/${REPO_IDENTIFIER}/${SAFE_TAG_NAME}"
   else
-    TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_IDENTIFIER}/${TAG_NAME}"
+    TAG_STORAGE_PATH="${REPO_RELEASE_STORAGE}/${REPO_IDENTIFIER}/${SAFE_TAG_NAME}"
   fi
   mkdir -p "$TAG_STORAGE_PATH"
 
@@ -230,6 +233,9 @@ op_github_download_release_asset() {
   # configuration variables
   local ASSET_NAME ASSET_DOWNLOAD_URL CMD_DOWNLOAD_ASSET
   ASSET_NAME=$(jq -r ".name" <<<"$ASSET_DATA")
+  # sanitize asset name for filesystem use: replace '/' and spaces with '-'
+  ASSET_NAME="${ASSET_NAME//\//-}"
+  ASSET_NAME="${ASSET_NAME// /-}"
   ASSET_DOWNLOAD_URL=$(jq -r ".browser_download_url" <<<"$ASSET_DATA")
 
   op_prompt_checkpoint -c "$CYAN" "Downloading asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
