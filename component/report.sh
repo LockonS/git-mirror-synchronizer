@@ -6,18 +6,25 @@ op_report_write_header() {
   local START_INDEX="${2:-0}"
   local END_INDEX="${3:-}"
   local FILTER_REPO_URL="${4:-}"
+
+  local SCOPE_LINE
+  if [[ -n "$FILTER_REPO_URL" ]]; then
+    SCOPE_LINE="Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
+  else
+    SCOPE_LINE="Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
+  fi
+
   echo -e "\n${BOLD}${WHITE}=== Sync Report ===${NC}"
   echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
   echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
-  [[ -z "$FILTER_REPO_URL" ]] && echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
-  [[ -n "$FILTER_REPO_URL" ]] && echo -e "Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
+  echo -e "$SCOPE_LINE"
+
   [[ -z "$REPORT_FILE" ]] && return 0
   {
     echo -e "${BOLD}${WHITE}=== Sync Report ===${NC}"
     echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
     echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
-    [[ -z "$FILTER_REPO_URL" ]] && echo -e "Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
-    [[ -n "$FILTER_REPO_URL" ]] && echo -e "Repo:    ${CYAN}${FILTER_REPO_URL}${NC}"
+    echo -e "$SCOPE_LINE"
     echo ""
   } > "$REPORT_FILE"
 }
@@ -29,18 +36,13 @@ op_report_append_repo_result() {
   local REPO_URL="${3}"
   local STATUS="${4}"
   
+  local STATUS_COLOR
+  [[ "$STATUS" == "PASS" ]] && STATUS_COLOR="$GREEN" || STATUS_COLOR="$RED"
+
   echo -e ""
-  if [[ "$STATUS" == "PASS" ]]; then
-    echo -e "[${INDEX}/${TOTAL}] ${GREEN}${BOLD}${STATUS}${NC}   ${REPO_URL}"
-  else
-    echo -e "[${INDEX}/${TOTAL}] ${RED}${BOLD}${STATUS}${NC}   ${REPO_URL}"
-  fi
+  echo -e "[${INDEX}/${TOTAL}] ${STATUS_COLOR}${BOLD}${STATUS}${NC}   ${REPO_URL}"
   [[ -z "$REPORT_FILE" ]] && return 0
-  if [[ "$STATUS" == "PASS" ]]; then
-    printf "[%d/%d] ${GREEN}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
-  else
-    printf "[%d/%d] ${RED}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
-  fi
+  printf "[%d/%d] ${STATUS_COLOR}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
 }
 
 # append summary block to the report file and echo it to stdout
@@ -130,23 +132,17 @@ op_generate_html_report() {
     DETAILED_REPORT_FULL="${SECTION_TEMPLATE//\{\{ITEMS\}\}/$ITEMS_FULL}"
   fi
 
-  # Build status note section
-  local STATUS_NOTE=""
+  # Derive status-dependent values in a single branch
+  local STATUS_NOTE REPORT_FAILED_CLASS
   if [[ ${REPORT_FAILED} -eq 0 ]]; then
     STATUS_NOTE=$(<"$HTML_DIR/section-status-success.html")
-  else
-    STATUS_NOTE=$(<"$HTML_DIR/section-status-failed.html")
-  fi
-
-  # Apply shared placeholders once to a base template
-  local REPORT_FAILED_CLASS
-  if [[ ${REPORT_FAILED} -eq 0 ]]; then
     REPORT_FAILED_CLASS="stat-failed-zero"
   else
+    STATUS_NOTE=$(<"$HTML_DIR/section-status-failed.html")
     REPORT_FAILED_CLASS="stat-failed"
   fi
   local BASE_TEMPLATE
-  BASE_TEMPLATE=$(cat "$REPORT_TEMPLATE_FILE")
+  BASE_TEMPLATE=$(<"$REPORT_TEMPLATE_FILE")
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{TIMESTAMP\}\}/$TIMESTAMP}"
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{HOSTNAME\}\}/$HOSTNAME}"
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{EXECUTION_MODE\}\}/$EXECUTION_MODE}"
