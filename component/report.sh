@@ -161,9 +161,14 @@ op_generate_html_report() {
   HTML_BRIEF_REPORT="${BASE_TEMPLATE//\{\{DETAILED_REPORT\}\}/$DETAILED_REPORT_BRIEF}"
   HTML_FULL_REPORT="${BASE_TEMPLATE//\{\{DETAILED_REPORT\}\}/$DETAILED_REPORT_FULL}"
 
-  # Apply status note to brief report only; full report omits it
-  HTML_BRIEF_REPORT="${HTML_BRIEF_REPORT//\{\{STATUS_NOTE\}\}/$STATUS_NOTE}"
-  HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{STATUS_NOTE\}\}/}"
+  # Apply status note section to brief report only; full report omits it entirely
+  local STATUS_NOTE_SECTION=""
+  if [[ -n "$STATUS_NOTE" ]]; then
+    STATUS_NOTE_SECTION=$(<"$HTML_DIR/section-status-note.html")
+    STATUS_NOTE_SECTION="${STATUS_NOTE_SECTION//\{\{STATUS_NOTE\}\}/$STATUS_NOTE}"
+  fi
+  HTML_BRIEF_REPORT="${HTML_BRIEF_REPORT//\{\{STATUS_NOTE_SECTION\}\}/$STATUS_NOTE_SECTION}"
+  HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{STATUS_NOTE_SECTION\}\}/}"
 
   # Inject full report URL link into brief report only
   local FULL_REPORT_URL_SECTION=""
@@ -173,7 +178,7 @@ op_generate_html_report() {
     FULL_REPORT_URL_SECTION="${URL_SECTION_TEMPLATE//\{\{HTML_REPORT_PUBLIC_URL\}\}/$HTML_REPORT_PUBLIC_URL}"
   fi
   HTML_BRIEF_REPORT="${HTML_BRIEF_REPORT//\{\{FULL_REPORT_URL_SECTION\}\}/$FULL_REPORT_URL_SECTION}"
-  # HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{FULL_REPORT_URL_SECTION\}\}/}"
+  HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{FULL_REPORT_URL_SECTION\}\}/}"
 
   # Write both report files alongside the text report
   echo -e "$HTML_BRIEF_REPORT" > "$HTML_BRIEF_REPORT_FILE"
