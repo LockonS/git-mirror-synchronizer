@@ -11,6 +11,8 @@ export CONFIG_PATH="$SYNC_TOOL_PATH/config"
 export TEMP_PATH="$SYNC_TOOL_PATH/temp-files"
 export LOG_PATH="$TEMP_PATH/log"
 export REPORT_PATH="$TEMP_PATH/report"
+export FAILED_REPO_FILE="$TEMP_PATH/failed-repo.txt"
+export PROGRESS_INDEX_FILE="$TEMP_PATH/progress-index"
 
 # include component
 source "$COMPONENT_PATH/common.sh"
@@ -75,7 +77,6 @@ sync_tool_entry() {
   local RETRY_MODE="false"
   local DRY_RUN="false"
   local FILTER_REPO_URLS=()
-  local PROGRESS_INDEX_FILE="$TEMP_PATH/progress-index"
   local START_INDEX=""
   local END_INDEX=""
   
@@ -204,6 +205,7 @@ sync_tool_entry() {
 
   # report counters
   local REPORT_TOTAL=0 REPORT_SUCCESS=0 REPORT_FAILED=0
+  local FAILED_REPO_URLS=()
 
   # traverse repo list, determine start and end index
   if [[ -z "$START_INDEX" ]]; then
@@ -245,6 +247,7 @@ sync_tool_entry() {
     REPORT_TOTAL=$((REPORT_TOTAL + 1))
     if [[ "$REPO_PROCESS_STATUS" == "failed" ]]; then
       REPORT_FAILED=$((REPORT_FAILED + 1))
+      FAILED_REPO_URLS+=("$REPO_URL")
       op_report_append_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "FAIL"
     else
       REPORT_SUCCESS=$((REPORT_SUCCESS + 1))
@@ -262,6 +265,9 @@ sync_tool_entry() {
 
   # clear progress file on successful completion
   [[ -f "$PROGRESS_INDEX_FILE" ]] && rm -f "$PROGRESS_INDEX_FILE"
+
+  # export failed repo URLs to temp-files/failed-repo.txt (clear file if none failed)
+  op_export_failed_repos "${FAILED_REPO_URLS[@]}"
 
   # print and save report summary
   op_report_write_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED"

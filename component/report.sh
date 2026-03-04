@@ -263,3 +263,14 @@ op_upload_report_s3() {
   op_prompt_info "Report: ${BOLD}${REPORT_FILE_PATH}${NC}"
   op_prompt_info "Upload: ${BOLD}${HTML_REPORT_BUCKET_FULL_PATH}${NC}"
 }
+
+# write failed repo URLs to temp-files/failed-repo.txt, or remove the file if none failed
+# Parameters: FAILED_REPO_URLS (array elements passed as individual arguments)
+op_export_failed_repos() {
+  if [[ $# -gt 0 ]]; then
+    printf '%s\n' "$@" > "$FAILED_REPO_FILE"
+    op_prompt_info "Failed repos exported to: ${BOLD}${FAILED_REPO_FILE}${NC}"
+  else
+    [[ -f "$FAILED_REPO_FILE" ]] && rm -f "$FAILED_REPO_FILE"
+  fi
+}
