@@ -174,8 +174,9 @@ sync_tool_entry() {
     PROGRESS_INDEX=$((REPO_INDEX + 1))
     REPO_URL=$(echo "$REPO_DATA" | jq ".repoUrl" | tr -d '"')
 
-    # filter by repoUrl if --repo-url is specified
-    if [[ -n "$FILTER_REPO_URL" ]] && [[ "$REPO_URL" != "$FILTER_REPO_URL" ]]; then
+    # filter by repoUrl if --repo-url is specified; also match with .git suffix if FILTER_REPO_URL has none
+    if [[ -n "$FILTER_REPO_URL" ]] && [[ "$REPO_URL" != "$FILTER_REPO_URL" ]] && \
+       { [[ "$FILTER_REPO_URL" == *.git ]] || [[ "$REPO_URL" != "${FILTER_REPO_URL}.git" ]]; }; then
       continue
     fi
 
