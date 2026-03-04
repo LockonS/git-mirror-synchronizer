@@ -155,12 +155,15 @@ op_generate_html_report() {
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{REPORT_FAILED\}\}/$REPORT_FAILED}"
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{REPORT_FAILED_CLASS\}\}/$REPORT_FAILED_CLASS}"
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{SUCCESS_RATE\}\}/$SUCCESS_RATE}"
-  BASE_TEMPLATE="${BASE_TEMPLATE//\{\{STATUS_NOTE\}\}/$STATUS_NOTE}"
 
   # Inject detail section to produce brief and full HTML reports
   local HTML_BRIEF_REPORT HTML_FULL_REPORT
   HTML_BRIEF_REPORT="${BASE_TEMPLATE//\{\{DETAILED_REPORT\}\}/$DETAILED_REPORT_BRIEF}"
   HTML_FULL_REPORT="${BASE_TEMPLATE//\{\{DETAILED_REPORT\}\}/$DETAILED_REPORT_FULL}"
+
+  # Apply status note to brief report only; full report omits it
+  HTML_BRIEF_REPORT="${HTML_BRIEF_REPORT//\{\{STATUS_NOTE\}\}/$STATUS_NOTE}"
+  HTML_FULL_REPORT="${HTML_FULL_REPORT//\{\{STATUS_NOTE\}\}/}"
 
   # Inject full report URL link into brief report only
   local FULL_REPORT_URL_SECTION=""
