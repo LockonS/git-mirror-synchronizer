@@ -45,11 +45,29 @@ op_report_append_repo_result() {
   printf "[%d/%d] ${STATUS_COLOR}${BOLD}%-6s${NC} %s\n" "$INDEX" "$TOTAL" "$STATUS" "$REPO_URL" >> "$REPORT_FILE"
 }
 
+# append per-repo detail line to report file (used by full HTML report)
+op_report_append_repo_detail() {
+  local REPO_URL="${1}"
+  local REPO_UPDATED="${2:-false}"
+  local RELEASE_ARTIFACTS_DOWNLOADED="${3:-0}"
+
+  [[ -z "$REPORT_FILE" ]] && return 0
+
+  local DETAIL_LINE="[DETAIL] Repo: ${REPO_URL} | Updated: ${REPO_UPDATED}"
+  if [[ "$RELEASE_ARTIFACTS_DOWNLOADED" -gt 0 ]]; then
+    DETAIL_LINE+=" | Release Artifacts Downloaded: ${RELEASE_ARTIFACTS_DOWNLOADED}"
+  fi
+
+  printf "%s\n" "$DETAIL_LINE" >> "$REPORT_FILE"
+}
+
 # append summary block to the report file and echo it to stdout
 op_report_write_summary() {
   local TOTAL="${1}"
   local SUCCESS="${2}"
   local FAILED="${3}"
+  local UPDATED_REPOS="${4:-0}"
+  local RELEASE_ARTIFACTS_DOWNLOADED="${5:-0}"
 
   local FAILED_COLOR
   if [[ "$FAILED" -eq 0 ]]; then
@@ -63,6 +81,8 @@ op_report_write_summary() {
   REPORT_CONTENT="Total:    ${BLUE}${TOTAL}${NC}"
   REPORT_CONTENT+="\nSuccess:  ${GREEN}${SUCCESS}${NC}"
   REPORT_CONTENT+="\nFailed:   ${FAILED_COLOR}${FAILED}${NC}"
+  REPORT_CONTENT+="\nUpdated Repos:  ${CYAN}${UPDATED_REPOS}${NC}"
+  REPORT_CONTENT+="\nRelease Artifacts Downloaded:  ${CYAN}${RELEASE_ARTIFACTS_DOWNLOADED}${NC}"
   op_prompt_info "$REPORT_CONTENT"
 
   if [[ -n "$REPORT_FILE" ]]; then
@@ -83,6 +103,8 @@ op_generate_html_report() {
   local REPORT_SUCCESS="${3:-0}"
   local REPORT_FAILED="${4:-0}"
   local REPORT_FILE="${5:-}"
+  local UPDATED_REPOS="${6:-0}"
+  local RELEASE_ARTIFACTS_DOWNLOADED="${7:-0}"
 
   local TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
   local HOSTNAME=$(hostname)
@@ -102,8 +124,9 @@ op_generate_html_report() {
   local HTML_DIR="$SYNC_TOOL_PATH/template/html/report"
   local DETAILED_REPORT_BRIEF="" DETAILED_REPORT_FULL=""
   if [[ -f "$REPORT_FILE" && -s "$REPORT_FILE" ]]; then
-    local ITEM_TEMPLATE SECTION_TEMPLATE FAIL_COUNT=0 ITEMS_BRIEF="" ITEMS_FULL="" rendered=""
-    ITEM_TEMPLATE=$(<"$HTML_DIR/section-detail-item.html")
+    local ITEM_TEMPLATE_FAIL ITEM_TEMPLATE_PASS SECTION_TEMPLATE FAIL_COUNT=0 ITEMS_BRIEF="" ITEMS_FULL="" rendered=""
+    ITEM_TEMPLATE_FAIL=$(<"$HTML_DIR/section-detail-item.html")
+    ITEM_TEMPLATE_PASS="${ITEM_TEMPLATE_FAIL/status-fail/status-pass}"
     while IFS= read -r line; do
       if [[ "$line" == *"FAIL"* ]]; then
         # Strip ANSI/tput color codes (CSI, ESC(B from tput sgr0, and SI control char)
@@ -112,12 +135,19 @@ op_generate_html_report() {
         line="${line//&/&amp;}"
         line="${line//</&lt;}"
         line="${line//>/&gt;}"
-        rendered="${ITEM_TEMPLATE//\{\{LINE\}\}/$line}"
+        rendered="${ITEM_TEMPLATE_FAIL//\{\{LINE\}\}/$line}"
         ITEMS_FULL+="$rendered"$'\n'
         if [[ $FAIL_COUNT -lt 10 ]]; then
           ITEMS_BRIEF+="$rendered"$'\n'
           (( FAIL_COUNT++ ))
         fi
+      elif [[ "$line" == "[DETAIL]"* ]]; then
+        line=$(printf '%s' "$line" | sed 's/^\[DETAIL\][[:space:]]*//')
+        line="${line//&/&amp;}"
+        line="${line//</&lt;}"
+        line="${line//>/&gt;}"
+        rendered="${ITEM_TEMPLATE_PASS//\{\{LINE\}\}/$line}"
+        ITEMS_FULL+="$rendered"$'\n'
       fi
     done < "$REPORT_FILE"
 
@@ -149,6 +179,8 @@ op_generate_html_report() {
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{REPORT_TOTAL\}\}/$REPORT_TOTAL}"
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{REPORT_SUCCESS\}\}/$REPORT_SUCCESS}"
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{REPORT_FAILED\}\}/$REPORT_FAILED}"
+  BASE_TEMPLATE="${BASE_TEMPLATE//\{\{REPORT_UPDATED_REPOS\}\}/$UPDATED_REPOS}"
+  BASE_TEMPLATE="${BASE_TEMPLATE//\{\{REPORT_RELEASE_ARTIFACTS_DOWNLOADED\}\}/$RELEASE_ARTIFACTS_DOWNLOADED}"
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{REPORT_FAILED_CLASS\}\}/$REPORT_FAILED_CLASS}"
   BASE_TEMPLATE="${BASE_TEMPLATE//\{\{SUCCESS_RATE\}\}/$SUCCESS_RATE}"
 

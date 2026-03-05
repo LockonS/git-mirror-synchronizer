@@ -259,11 +259,11 @@ op_github_download_release_asset() {
   fi
 
   CMD_DOWNLOAD_ASSET="curl -L --retry $DOWNLOAD_RETRY --retry-delay $DOWNLOAD_RETRY_DELAY --progress-bar -o '${RELEASE_STORAGE_PATH}/${ASSET_NAME}' '${ASSET_DOWNLOAD_URL}'"
-  op_run_cmd "$CMD_DOWNLOAD_ASSET"
-
-  # remove files if download operation didn't finish successfully
-  if [[ "$?" -ne 0 ]]; then
-    rm "${RELEASE_STORAGE_PATH}/${ASSET_NAME}"
+  if op_run_cmd "$CMD_DOWNLOAD_ASSET"; then
+    (( REPO_RELEASE_ARTIFACTS_DOWNLOADED++ ))
+  else
+    # remove files if download operation didn't finish successfully
+    rm -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}"
   fi
 }
 
