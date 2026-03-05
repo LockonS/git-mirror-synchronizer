@@ -31,7 +31,7 @@
       {
         "name": "custom",
         "repoUrl": "custom-git-repo-url.git",
-        "forcePush": "false"
+        "retryForcePush": "false"
       }
     ]
   }

@@ -144,7 +144,7 @@ Below is a fully annotated entry. Every field except `repoUrl` is optional.
             {
                 "name": "gitlab",                                   // label for logging
                 "repoUrl": "git@gitlab.example.com:mirror/repository.git",      // push destination
-                "forcePush": "false"                                // use --force on push
+                "retryForcePush": "false"                                // use --force on push
             }
         ]
     }
@@ -171,7 +171,7 @@ Below is a fully annotated entry. Every field except `repoUrl` is optional.
 | `tag.keptVersionKeywords`     | —        | `[]`                   | Tags pinned regardless of `keptVersionNum`        |
 | `mirror[].name`               | —        | —                      | Label for the mirror (used in logs)               |
 | `mirror[].repoUrl`            | —        | —                      | Push destination URL                              |
-| `mirror[].forcePush`          | —        | `"false"`              | Pass `--force` when pushing                       |
+| `mirror[].retryForcePush`          | —        | `"false"`              | Pass `--force` when pushing                       |
 | `notification.email.enable`   | —        | `"false"`              | Enable email notifications (`"true"`/`"false"`)   |
 | `notification.email.sender`   | —        | `""`                   | Sender address (defaults to `noreply@git-mirror-synchronizer`) |
 | `notification.email.receiver` | —        | `""`                   | Recipient address for sync result notifications   |

@@ -71,18 +71,18 @@ op_sync_repo() {
     return 0
   fi
   
-  local MIRROR_INDEX MIRROR_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_URL MIRROR_FORCE_PUSH
+  local MIRROR_INDEX MIRROR_REMOTE_REPO_NAME MIRROR_REMOTE_REPO_URL MIRROR_RETRY_FORCE_PUSH
   for ((MIRROR_INDEX = 0; MIRROR_INDEX < MIRROR_LENGTH; MIRROR_INDEX++)); do
     # mirror configuration
     MIRROR_REMOTE_REPO_NAME=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].name" | tr -d '"')
     MIRROR_REMOTE_REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].repoUrl" | tr -d '"')
-    MIRROR_FORCE_PUSH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].forcePush" | tr -d '"')
+    MIRROR_RETRY_FORCE_PUSH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].retryForcePush" | tr -d '"')
     if [[ -z $MIRROR_REMOTE_REPO_NAME ]] || [[ -z $MIRROR_REMOTE_REPO_URL ]]; then
       op_prompt_warn "Mirror repository configuration is not complete, abort this mirror"
       continue
     fi
     op_set_remote_repo "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"
-    op_push_remote_repo "$REPO_NAME" "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_FORCE_PUSH"
+    op_push_remote_repo "$REPO_NAME" "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_RETRY_FORCE_PUSH"
   done
 }
 
@@ -107,11 +107,11 @@ op_set_remote_repo() {
 
 # push to remote repo
 op_push_remote_repo() {
-  local REPO_NAME REPO_LOCAL_PATH MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME MIRROR_FORCE_PUSH
+  local REPO_NAME REPO_LOCAL_PATH MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME MIRROR_RETRY_FORCE_PUSH
   REPO_NAME="${1}"
   REPO_LOCAL_PATH="${2}"
   MIRROR_REMOTE_REPO_NAME="${3}"
-  MIRROR_FORCE_PUSH="${4}"
+  MIRROR_RETRY_FORCE_PUSH="${4}"
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
 
   # print repo sync message
@@ -132,7 +132,7 @@ op_push_remote_repo() {
   fi
   
   # when previous push command failed and force push is enabled, retry with force push
-  if [[ "$REPO_PROCESS_STATUS" == "failed" ]] && [[ "$MIRROR_FORCE_PUSH" == "true" ]]; then
+  if [[ "$REPO_PROCESS_STATUS" == "failed" ]] && [[ "$MIRROR_RETRY_FORCE_PUSH" == "true" ]]; then
     op_prompt_warn "Push failed, retrying with force push for remote ${MIRROR_REMOTE_REPO_NAME}"
     if op_run_cmd "$CMD_GIT_FORCE_PUSH_TO_MIRROR"; then
       REPO_PROCESS_STATUS="success"

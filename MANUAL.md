@@ -163,7 +163,7 @@ An array of repository objects:
       {
         "name": "gitlab",
         "repoUrl": "git@gitlab.example.com:mirror/repo.git",
-        "forcePush": "false"
+        "retryForcePush": "false"
       }
     ]
   }
@@ -179,7 +179,7 @@ An array of repository objects:
 | `catalog`                 | —        | Subdirectory path for organizing storage (e.g. `tools/cli`) |
 | `repo`, `release`, `tag`  | —        | Per-repo overrides (inherit from global if omitted)         |
 | `release.excludeKeywords` | —        | Comma-separated keywords to skip release assets             |
-| `mirror[].forcePush`      | —        | Force-push to mirror (`"true"`/`"false"`)                   |
+| `mirror[].retryForcePush`      | —        | Force-push to mirror (`"true"`/`"false"`)                   |
 
 ### Notification
 
@@ -365,17 +365,17 @@ Generate a token at: GitHub → Settings → Developer settings → Personal acc
     {
       "name": "primary",
       "repoUrl": "git@gitlab.com:backup/project.git",
-      "forcePush": "false"
+      "retryForcePush": "false"
     },
     {
       "name": "secondary",
       "repoUrl": "git@gitlab.elsewhere.com:backup/project.git",
-      "forcePush": "true"
+      "retryForcePush": "true"
     },
     {
       "name": "local-nas",
       "repoUrl": "git@nas.local:backup/project.git",
-      "forcePush": "false"
+      "retryForcePush": "false"
     }
   ]
 }
