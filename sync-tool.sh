@@ -178,9 +178,13 @@ sync_tool_entry() {
   fi
 
   # report counters
-  local REPORT_TOTAL=0 REPORT_SUCCESS=0 REPORT_FAILED=0
-  local REPORT_UPDATED_REPOS=0 REPORT_RELEASE_ARTIFACTS_DOWNLOADED=0
-  local FAILED_REPO_URLS=()
+  local REPORT_TOTAL REPORT_SUCCESS REPORT_FAILED REPORT_UPDATED REPORT_REL_DOWNLOADED FAILED_REPO_URLS
+  REPORT_TOTAL=0 
+  REPORT_SUCCESS=0 
+  REPORT_FAILED=0
+  REPORT_UPDATED=0 
+  REPORT_REL_DOWNLOADED=0
+  FAILED_REPO_URLS=()
 
   # traverse repo list, determine start and end index
   if [[ -z "$START_INDEX" ]]; then
@@ -229,15 +233,15 @@ sync_tool_entry() {
       op_report_append_repo_result "$PROGRESS_INDEX" "$REPO_LENGTH" "$REPO_URL" "PASS"
     fi
 
-    if [[ "$REPO_WAS_UPDATED" == "true" ]]; then
-      REPORT_UPDATED_REPOS=$((REPORT_UPDATED_REPOS + 1))
+    if [[ "$REPO_UPDATED" == "true" ]]; then
+      REPORT_UPDATED=$((REPORT_UPDATED + 1))
     fi
 
-    if [[ -n "$REPO_RELEASE_ARTIFACTS_DOWNLOADED" ]] && [[ "$REPO_RELEASE_ARTIFACTS_DOWNLOADED" -gt 0 ]]; then
-      REPORT_RELEASE_ARTIFACTS_DOWNLOADED=$((REPORT_RELEASE_ARTIFACTS_DOWNLOADED + REPO_RELEASE_ARTIFACTS_DOWNLOADED))
+    if [[ -n "$REPO_RELEASE_DL_COUNT" ]] && [[ "$REPO_RELEASE_DL_COUNT" -gt 0 ]]; then
+      REPORT_REL_DOWNLOADED=$((REPORT_REL_DOWNLOADED + REPO_RELEASE_DL_COUNT))
     fi
 
-    op_report_append_repo_detail "$REPO_URL" "$REPO_WAS_UPDATED" "$REPO_RELEASE_ARTIFACTS_DOWNLOADED"
+    op_report_append_repo_detail "$REPO_URL" "$REPO_UPDATED" "$REPO_RELEASE_DL_COUNT"
 
     [[ ${#FILTER_REPO_URLS[@]} -eq 0 ]] && echo "$PROGRESS_INDEX" > "$PROGRESS_INDEX_FILE"
   
@@ -255,13 +259,13 @@ sync_tool_entry() {
   op_export_failed_repos "${FAILED_REPO_URLS[@]}"
 
   # print and save report summary
-  op_report_write_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_UPDATED_REPOS" "$REPORT_RELEASE_ARTIFACTS_DOWNLOADED"
+  op_report_write_summary "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_UPDATED" "$REPORT_REL_DOWNLOADED"
 
   # assemble bucket file path and public URL for the generated report file, export as env variable
   op_generate_report_file_path "$RUNTIME_CONFIG_FILE" "$REPORT_FILE"
 
   # generate HTML report files
-  op_generate_html_report "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE" "$REPORT_UPDATED_REPOS" "$REPORT_RELEASE_ARTIFACTS_DOWNLOADED"
+  op_generate_html_report "$EXECUTION_MODE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE" "$REPORT_UPDATED" "$REPORT_REL_DOWNLOADED"
 
   # upload HTML report
   op_upload_report_s3 "$RUNTIME_CONFIG_FILE" "$HTML_FULL_REPORT_FILE"

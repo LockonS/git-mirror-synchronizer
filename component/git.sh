@@ -47,7 +47,7 @@ op_sync_repo() {
     op_prompt_debug "Project repository not initialized, clone repo to target path"
     op_run_tracked_cmd "$CMD_GIT_CLONE_REPO"
     if [[ "$REPO_PROCESS_STATUS" != "failed" ]]; then
-      REPO_WAS_UPDATED="true"
+      REPO_UPDATED="true"
     fi
   elif [[ -d $REPO_LOCAL_PATH/.git ]]; then
     # validate if local repo is already initalized if directory exist
@@ -57,14 +57,14 @@ op_sync_repo() {
     if [[ "$REPO_PROCESS_STATUS" != "failed" ]]; then
       REPO_HEAD_AFTER=$(git -C "$REPO_LOCAL_PATH" rev-parse HEAD 2>/dev/null)
       if [[ -n "$REPO_HEAD_BEFORE" ]] && [[ -n "$REPO_HEAD_AFTER" ]] && [[ "$REPO_HEAD_BEFORE" != "$REPO_HEAD_AFTER" ]]; then
-        REPO_WAS_UPDATED="true"
+        REPO_UPDATED="true"
       fi
     fi
   else
     op_prompt_debug "Project repository not initialized, try clone into the directory"
     op_run_tracked_cmd "$CMD_GIT_CLONE_REPO"
     if [[ "$REPO_PROCESS_STATUS" != "failed" ]]; then
-      REPO_WAS_UPDATED="true"
+      REPO_UPDATED="true"
     fi
   fi
 
@@ -241,8 +241,8 @@ op_dispatch_repo_handler() {
 
   # reset per-repo status before processing
   REPO_PROCESS_STATUS="success"
-  REPO_WAS_UPDATED="false"
-  REPO_RELEASE_ARTIFACTS_DOWNLOADED=0
+  REPO_UPDATED="false"
+  REPO_RELEASE_DL_COUNT=0
 
   if [[ "$REPO_URL" == *"github.com"* ]]; then
     op_handle_github_repo "$REPO_RUNTIME_CONFIG"
