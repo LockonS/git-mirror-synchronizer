@@ -307,7 +307,7 @@ op_cleanup_old_versions() {
     if (( ${#ELIGIBLE_DIRS[@]} > KEPT_VERSION_NUM )); then
       op_prompt_info "Keeping ${KEPT_VERSION_NUM} newest ${TYPE}(s), removing $((${#ELIGIBLE_DIRS[@]} - KEPT_VERSION_NUM)) old ${TYPE}(s)"
       for DIR in "${ELIGIBLE_DIRS[@]:$KEPT_VERSION_NUM}"; do
-        op_prompt_info "Removing old ${TYPE}: $(basename "$DIR")"
+        op_prompt_info "Removing old ${TYPE}: ${YELLOW}$(basename "$DIR")${NC}"
         rm -rf "$DIR"
         (( REMOVE_COUNT++ ))
       done
