@@ -20,12 +20,12 @@ op_report_write_header() {
   SUMMARY_HEADER+="\nDate:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
   SUMMARY_HEADER+="\nMode:    ${CYAN}${EXECUTION_MODE}${NC}"
   SUMMARY_HEADER+="\n$SCOPE_LINE"
-  SUMMARY_HEADER+="\n=== Task Detail ==="
 
   echo -e "$SUMMARY_HEADER"
 
   [[ -z "$REPORT_FILE" ]] && return 0
   {
+    SUMMARY_HEADER+="\n=== Task Detail ===\n"
     echo -e "${SUMMARY_HEADER}"
   } > "$REPORT_FILE"
 }
