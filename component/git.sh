@@ -6,7 +6,8 @@
 
 # setup repo sync setting and sync repo to local storage, then optionally sync to mirror repos if configured
 op_sync_repo() {
-  local REPO_RUNTIME_CONFIG REPO_NAME REPO_IDENTIFIER REPO_CATALOG REPO_STORAGE_PATH REPO_LOCAL_PATH
+  local REPO_RUNTIME_CONFIG REPO_URL REPO_NAME REPO_IDENTIFIER REPO_CATALOG REPO_STORAGE_PATH REPO_LOCAL_PATH
+  local MIRROR_EXISTS MIRROR_LENGTH
   REPO_RUNTIME_CONFIG="$@"
   REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')
   REPO_CATALOG=$(echo "$REPO_RUNTIME_CONFIG" | jq ".catalog" | tr -d '"')
@@ -39,7 +40,7 @@ op_sync_repo() {
   local CMD_GIT_PULL="git -C $REPO_LOCAL_PATH pull"
 
   # TODO handle case if repo main branch changed
-  local REPO_HEAD_BEFORE="" 
+  local REPO_HEAD_BEFORE=""
   local REPO_HEAD_AFTER=""
 
   if [[ ! -d "$REPO_LOCAL_PATH" ]]; then
@@ -160,6 +161,7 @@ op_push_remote_repo() {
 # load repo config, inherit from global config and overwrite the custom repo config
 op_load_repo_config() {
   local REPO_CONFIG_CONTENT="${1}"
+  local REPO_RUNTIME_CONFIG
   echo "$REPO_CONFIG_CONTENT" >"${TEMP_PATH}/repo.temp.json"
   # deep copy and overwrite (currently the most clear way to implement)
   REPO_RUNTIME_CONFIG=$(jq -s '.[0] * .[1]' "${TEMP_PATH}/global.temp.json" "${TEMP_PATH}/repo.temp.json")
@@ -256,6 +258,8 @@ op_dispatch_repo_handler() {
 # cleanup old versions, keep only the newest N versions and specific pinned versions
 op_cleanup_old_versions() {
   local STORAGE_PATH REPO_IDENTIFIER KEPT_VERSION_NUM TYPE KEPT_VERSIONS
+  local VERSION_DIRS PINNED_VERSIONS ELIGIBLE_DIRS
+  local DIR DIR_NAME IS_PINNED PINNED_VER REMOVE_COUNT
   STORAGE_PATH="${1}"
   REPO_IDENTIFIER="${2}"
   KEPT_VERSION_NUM="${3}"
@@ -270,17 +274,18 @@ op_cleanup_old_versions() {
   op_prompt_checkpoint -n "Cleanup old ${TYPE}, keep only the newest ${BOLD}${GREEN}${KEPT_VERSION_NUM}${NC} ${TYPE}"
 
   if [[ -d "$STORAGE_PATH/$REPO_IDENTIFIER" ]]; then
-    local VERSION_DIRS
     VERSION_DIRS=($(ls -1dt "$STORAGE_PATH/$REPO_IDENTIFIER"/*/ 2>/dev/null))
 
     # build list of pinned version names that must not be deleted
-    local PINNED_VERSIONS=()
+    PINNED_VERSIONS=()
     if [[ -n "$KEPT_VERSIONS" && "$KEPT_VERSIONS" != "null" ]]; then
       IFS=',' read -A PINNED_VERSIONS <<<"$KEPT_VERSIONS"
     fi
 
     # separate dirs into eligible-for-cleanup and pinned
-    local ELIGIBLE_DIRS=() DIR_NAME="" IS_PINNED=false
+    ELIGIBLE_DIRS=()
+    DIR_NAME=""
+    IS_PINNED=false
     for DIR in "${VERSION_DIRS[@]}"; do
       DIR_NAME=$(basename "$DIR")
       IS_PINNED=false

@@ -69,6 +69,7 @@ op_github_validate_response() {
 
 op_github_download_release() {
   local REPO_URL REPO_RELEASE_STORAGE EXCLUDE_KEYWORDS REPO_IDENTIFIER KEPT_VERSION_NUM REPO_CATALOG AUTH_REQUEST_HEADER KEPT_VERSIONS
+  local ASSET_DATA
   REPO_URL="${1}"
   REPO_RELEASE_STORAGE="${2}"
   EXCLUDE_KEYWORDS="${3}"
@@ -245,7 +246,7 @@ op_github_download_release_asset() {
 
   # compare exclude keywords
   if [[ -n "$EXCLUDE_KEYWORDS" ]]; then
-    local MATCHED_KEYWORD ASSET_NAME_PREFIX ASSET_NAME_SUFFIX
+    local MATCHED_KEYWORD ASSET_NAME_PREFIX ASSET_NAME_SUFFIX EXCLUDE_KEYWORD_LIST KEYWORD
     IFS=',' read -A EXCLUDE_KEYWORD_LIST <<<"$EXCLUDE_KEYWORDS"
     for KEYWORD in "${EXCLUDE_KEYWORD_LIST[@]}"; do
       [[ -z "$KEYWORD" ]] && continue

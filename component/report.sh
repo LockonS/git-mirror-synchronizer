@@ -69,6 +69,7 @@ op_report_write_summary() {
   local FAILED="${3}"
   local UPDATED_REPOS="${4:-0}"
   local RELEASE_DL_COUNT="${5:-0}"
+  local REPORT_CONTENT=""
 
   local FAILED_COLOR
   if [[ "$FAILED" -eq 0 ]]; then
@@ -107,10 +108,13 @@ op_generate_html_report() {
   local UPDATED_REPOS="${6:-0}"
   local RELEASE_DL_COUNT="${7:-0}"
 
-  local TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-  local HOSTNAME=$(hostname)
+  local TIMESTAMP
+  local HOSTNAME
   local SUCCESS_RATE="N/A"
   local REPORT_TEMPLATE_FILE="$SYNC_TOOL_PATH/template/html/report.html"
+
+  TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+  HOSTNAME=$(hostname)
 
   if [[ ! -f "$REPORT_TEMPLATE_FILE" ]]; then
     op_prompt_error "Report template file not found: $REPORT_TEMPLATE_FILE"
@@ -126,9 +130,9 @@ op_generate_html_report() {
   local DETAILED_REPORT_BRIEF="" DETAILED_REPORT_FULL=""
   if [[ -f "$REPORT_FILE" && -s "$REPORT_FILE" ]]; then
     local ITEM_TEMPLATE_FAIL ITEM_TEMPLATE_PASS SECTION_TEMPLATE FAIL_COUNT ITEMS_BRIEF ITEMS_FULL RENDERED_LINE
-    FAIL_COUNT=0 
-    ITEMS_BRIEF="" 
-    ITEMS_FULL="" 
+    FAIL_COUNT=0
+    ITEMS_BRIEF=""
+    ITEMS_FULL=""
     RENDERED_LINE=""
 
     ITEM_TEMPLATE_FAIL=$(<"$HTML_DIR/section-detail-item.html")
@@ -229,6 +233,8 @@ op_generate_html_report() {
 op_generate_report_file_path() {
   local RUNTIME_CONFIG_FILE="${1:-}"
   local REPORT_FILE_PATH="${2:-}"
+  local S3_PATH_PREFIX=""
+  local S3_URL_PREFIX=""
 
   if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
     S3_PATH_PREFIX=$(jq -r '.report.s3.pathPrefix // ""' "$RUNTIME_CONFIG_FILE")
@@ -250,12 +256,8 @@ op_upload_report_s3() {
   local RUNTIME_CONFIG_FILE="${1:-}"
   local REPORT_FILE_PATH="${2:-}"
 
-  local S3_ENABLE="" 
-  local S3_PROFILE="" 
-  local S3_BUCKET="" 
-  local S3_PATH_PREFIX="" 
-  local S3_URL_PREFIX=""
-  local CMD_UPLOAD_FILE=""
+  local S3_ENABLE S3_PROFILE S3_BUCKET S3_PATH_PREFIX S3_URL_PREFIX
+  local CMD_UPLOAD_FILE HTML_REPORT_BUCKET_FULL_PATH
 
   if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
     S3_ENABLE=$(jq -r '.report.s3.enable // "false"' "$RUNTIME_CONFIG_FILE")
@@ -267,6 +269,12 @@ op_upload_report_s3() {
     # remove trailing '/' if present
     S3_PATH_PREFIX=$(op_remove_trailing_slash "$S3_PATH_PREFIX")
     S3_URL_PREFIX=$(op_remove_trailing_slash "$S3_URL_PREFIX")
+  else
+    S3_ENABLE="false"
+    S3_PROFILE=""
+    S3_BUCKET=""
+    S3_PATH_PREFIX=""
+    S3_URL_PREFIX=""
   fi
 
   if [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]]; then
