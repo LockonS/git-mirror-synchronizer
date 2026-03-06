@@ -19,7 +19,7 @@ op_report_write_header() {
   SUMMARY_HEADER+="\n${BOLD}${WHITE}=== Sync Report ===${NC}"
   SUMMARY_HEADER+="\nDate:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
   SUMMARY_HEADER+="\nMode:    ${CYAN}${EXECUTION_MODE}${NC}"
-  SUMMARY_HEADER+="\n$SCOPE_LINE"
+  SUMMARY_HEADER+="\n$SCOPE_LINE\n"
 
   echo -e "$SUMMARY_HEADER"
 
