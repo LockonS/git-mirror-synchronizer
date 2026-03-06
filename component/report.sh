@@ -14,18 +14,19 @@ op_report_write_header() {
     SCOPE_LINE="Range:   ${CYAN}${START_INDEX} - ${END_INDEX}${NC}"
   fi
 
-  echo -e "\n${BOLD}${WHITE}=== Sync Report ===${NC}"
-  echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
-  echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
-  echo -e "$SCOPE_LINE"
+  local SUMMARY_HEADER=""
+
+  SUMMARY_HEADER+="\n${BOLD}${WHITE}=== Sync Report ===${NC}"
+  SUMMARY_HEADER+="\nDate:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+  SUMMARY_HEADER+="\nMode:    ${CYAN}${EXECUTION_MODE}${NC}"
+  SUMMARY_HEADER+="\n$SCOPE_LINE"
+  SUMMARY_HEADER+="\n=== Task Detail ==="
+
+  echo -e "$SUMMARY_HEADER"
 
   [[ -z "$REPORT_FILE" ]] && return 0
   {
-    echo -e "${BOLD}${WHITE}=== Sync Report ===${NC}"
-    echo -e "Date:    ${CYAN}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
-    echo -e "Mode:    ${CYAN}${EXECUTION_MODE}${NC}"
-    echo -e "$SCOPE_LINE"
-    echo ""
+    echo -e "${SUMMARY_HEADER}"
   } > "$REPORT_FILE"
 }
 
@@ -81,8 +82,8 @@ op_report_write_summary() {
   REPORT_CONTENT="Total:    ${BLUE}${TOTAL}${NC}"
   REPORT_CONTENT+="\nSuccess:  ${GREEN}${SUCCESS}${NC}"
   REPORT_CONTENT+="\nFailed:   ${FAILED_COLOR}${FAILED}${NC}"
-  REPORT_CONTENT+="\nUpdated Repos:  ${CYAN}${UPDATED_REPOS}${NC}"
-  REPORT_CONTENT+="\nRelease Artifacts Downloaded:  ${CYAN}${RELEASE_DL_COUNT}${NC}"
+  REPORT_CONTENT+="\nUpdated:  ${CYAN}${UPDATED_REPOS}${NC}"
+  REPORT_CONTENT+="\nRelease Downloaded:  ${CYAN}${RELEASE_DL_COUNT}${NC}"
   op_prompt_info "$REPORT_CONTENT"
 
   if [[ -n "$REPORT_FILE" ]]; then
@@ -249,8 +250,12 @@ op_upload_report_s3() {
   local RUNTIME_CONFIG_FILE="${1:-}"
   local REPORT_FILE_PATH="${2:-}"
 
-  local S3_ENABLE S3_PROFILE S3_BUCKET S3_PATH_PREFIX S3_URL_PREFIX
-  local CMD_UPLOAD_FILE HTML_REPORT_BUCKET_FULL_PATH
+  local S3_ENABLE="" 
+  local S3_PROFILE="" 
+  local S3_BUCKET="" 
+  local S3_PATH_PREFIX="" 
+  local S3_URL_PREFIX=""
+  local CMD_UPLOAD_FILE=""
 
   if [[ -f "$RUNTIME_CONFIG_FILE" ]]; then
     S3_ENABLE=$(jq -r '.report.s3.enable // "false"' "$RUNTIME_CONFIG_FILE")
@@ -262,12 +267,6 @@ op_upload_report_s3() {
     # remove trailing '/' if present
     S3_PATH_PREFIX=$(op_remove_trailing_slash "$S3_PATH_PREFIX")
     S3_URL_PREFIX=$(op_remove_trailing_slash "$S3_URL_PREFIX")
-  else
-    S3_ENABLE="false"
-    S3_PROFILE=""
-    S3_BUCKET=""
-    S3_PATH_PREFIX=""
-    S3_URL_PREFIX=""
   fi
 
   if [[ -z "$REPORT_FILE_PATH" || ! -f "$REPORT_FILE_PATH" ]]; then

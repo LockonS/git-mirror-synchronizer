@@ -203,7 +203,7 @@ op_github_download_tag() {
 
   # skip already downloaded assets
   if [[ -f "${TAG_STORAGE_PATH}/${ASSET_NAME}" ]]; then
-    op_prompt_info "[${YELLOW}Downloaded${NC}] Asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
+    op_prompt_info "${YELLOW}[Downloaded]${NC} Asset ${BOLD}${GREEN}${ASSET_NAME}${NC}"
     return 0
   fi
 
@@ -254,7 +254,7 @@ op_github_download_release_asset() {
         ASSET_NAME_PREFIX="${ASSET_NAME%%"$MATCHED_KEYWORD"*}"
         ASSET_NAME_SUFFIX="${ASSET_NAME#*"$MATCHED_KEYWORD"}"
         ASSET_NAME_DISPLAY="${BOLD}${GREEN}${ASSET_NAME_PREFIX}${YELLOW}${MATCHED_KEYWORD}${GREEN}${ASSET_NAME_SUFFIX}${NC}"
-        op_prompt_info "[${YELLOW}Excluded:${NC}] Asset ${ASSET_NAME_DISPLAY}"
+        op_prompt_info "${YELLOW}[Excluded]${NC} Asset ${ASSET_NAME_DISPLAY}"
         return 0
       fi
     done
@@ -262,7 +262,7 @@ op_github_download_release_asset() {
 
   # skip already downloaded assets
   if [[ -f "${RELEASE_STORAGE_PATH}/${ASSET_NAME}" ]]; then
-    op_prompt_info "[${YELLOW}Downloaded${NC}] Asset ${ASSET_NAME_DISPLAY}"
+    op_prompt_info "${YELLOW}[Downloaded]${NC} Asset ${ASSET_NAME_DISPLAY}"
     return 0
   fi
 
