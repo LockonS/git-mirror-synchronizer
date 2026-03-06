@@ -25,7 +25,7 @@ op_report_write_header() {
 
   [[ -z "$REPORT_FILE" ]] && return 0
   {
-    SUMMARY_HEADER+="\n=== Task Detail ===\n"
+    SUMMARY_HEADER+="\n${BOLD}${WHITE}=== Task Detail ===${NC}\n"
     echo -e "${SUMMARY_HEADER}"
   } > "$REPORT_FILE"
 }
