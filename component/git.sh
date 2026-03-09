@@ -77,7 +77,7 @@ op_sync_repo() {
   # Check if mirror field exists and is not null
   MIRROR_EXISTS=$(echo "$REPO_RUNTIME_CONFIG" | jq 'has("mirror")')
   if [[ "$MIRROR_EXISTS" != "true" ]]; then
-    op_prompt_info "No mirror configuration found, skipping mirror sync"
+    op_prompt_info "\nNo mirror configuration found, skipping mirror sync"
     return 0
   fi
   
@@ -85,7 +85,7 @@ op_sync_repo() {
   MIRROR_LENGTH=$(echo "$REPO_RUNTIME_CONFIG" | jq '.mirror | length')
   # Check if mirror is null or empty
   if [[ "$MIRROR_LENGTH" == "null" ]] || [[ "$MIRROR_LENGTH" == "0" ]] || [[ -z "$MIRROR_LENGTH" ]]; then
-    op_prompt_info "Mirror configuration is empty, skipping mirror sync"
+    op_prompt_info "\nMirror configuration is empty, skipping mirror sync"
     return 0
   fi
   
@@ -96,7 +96,7 @@ op_sync_repo() {
     MIRROR_REMOTE_REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].repoUrl" | tr -d '"')
     MIRROR_RETRY_FORCE_PUSH=$(echo "$REPO_RUNTIME_CONFIG" | jq ".mirror[$MIRROR_INDEX].retryForcePush" | tr -d '"')
     if [[ -z $MIRROR_REMOTE_REPO_NAME ]] || [[ -z $MIRROR_REMOTE_REPO_URL ]]; then
-      op_prompt_warn "Mirror repository configuration is not complete, abort this mirror"
+      op_prompt_warn "\nMirror repository configuration is not complete, abort this mirror"
       continue
     fi
     op_set_remote_repo "$REPO_LOCAL_PATH" "$MIRROR_REMOTE_REPO_NAME" "$MIRROR_REMOTE_REPO_URL"

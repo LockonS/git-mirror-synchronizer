@@ -153,6 +153,7 @@ op_generate_html_report() {
         line="${line//</&lt;}"
         line="${line//>/&gt;}"
         RENDERED_LINE="${ITEM_TEMPLATE_FAIL//\{\{LINE\}\}/$line}"
+        RENDERED_LINE="${RENDERED_LINE//\{\{RELEASE_DL_COUNT\}\}/}"
         ITEMS_FULL+="$RENDERED_LINE"$'\n'
         if [[ $FAIL_COUNT -lt 10 ]]; then
           ITEMS_BRIEF+="$RENDERED_LINE"$'\n'
@@ -160,16 +161,22 @@ op_generate_html_report() {
         fi
       elif [[ "$line" == "[DETAIL]"* ]]; then
         local DETAIL_TEMPLATE="$ITEM_TEMPLATE_PASS"
+        local DETAIL_RELEASE_DL_COUNT="0"
         if [[ "$line" == "[DETAIL][UPDATED]"* ]]; then
           line=$(printf '%s' "$line" | sed 's/^\[DETAIL\]\[UPDATED\][[:space:]]*//')
           DETAIL_TEMPLATE="$ITEM_TEMPLATE_UPDATED"
         else
           line=$(printf '%s' "$line" | sed 's/^\[DETAIL\][[:space:]]*//')
         fi
+        if [[ "$line" == *" | Release Artifacts Downloaded: "* ]]; then
+          DETAIL_RELEASE_DL_COUNT="${line##* | Release Artifacts Downloaded: }"
+          line="${line% | Release Artifacts Downloaded: *}"
+        fi
         line="${line//&/&amp;}"
         line="${line//</&lt;}"
         line="${line//>/&gt;}"
         RENDERED_LINE="${DETAIL_TEMPLATE//\{\{LINE\}\}/$line}"
+        RENDERED_LINE="${RENDERED_LINE//\{\{RELEASE_DL_COUNT\}\}/$DETAIL_RELEASE_DL_COUNT}"
         ITEMS_FULL+="$RENDERED_LINE"$'\n'
       fi
     done < "$REPORT_FILE"
