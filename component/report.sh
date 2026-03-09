@@ -54,7 +54,13 @@ op_report_append_repo_detail() {
 
   [[ -z "$REPORT_FILE" ]] && return 0
 
-  local DETAIL_LINE="[DETAIL] Repo: ${REPO_URL} | Updated: ${REPO_UPDATED}"
+  local DETAIL_PREFIX="[DETAIL]"
+  if [[ "$REPO_UPDATED" == "true" ]]; then
+    # TODO remove duplicated state
+    DETAIL_PREFIX="[DETAIL][UPDATED]"
+  fi
+
+  local DETAIL_LINE="${DETAIL_PREFIX} Repo: ${REPO_URL}"
   if [[ "$RELEASE_DL_COUNT" -gt 0 ]]; then
     DETAIL_LINE+=" | Release Artifacts Downloaded: ${RELEASE_DL_COUNT}"
   fi
@@ -129,7 +135,7 @@ op_generate_html_report() {
   local HTML_DIR="$SYNC_TOOL_PATH/template/html/report"
   local DETAILED_REPORT_BRIEF="" DETAILED_REPORT_FULL=""
   if [[ -f "$REPORT_FILE" && -s "$REPORT_FILE" ]]; then
-    local ITEM_TEMPLATE_FAIL ITEM_TEMPLATE_PASS SECTION_TEMPLATE FAIL_COUNT ITEMS_BRIEF ITEMS_FULL RENDERED_LINE
+    local ITEM_TEMPLATE_FAIL ITEM_TEMPLATE_PASS ITEM_TEMPLATE_UPDATED SECTION_TEMPLATE FAIL_COUNT ITEMS_BRIEF ITEMS_FULL RENDERED_LINE
     FAIL_COUNT=0
     ITEMS_BRIEF=""
     ITEMS_FULL=""
@@ -137,6 +143,7 @@ op_generate_html_report() {
 
     ITEM_TEMPLATE_FAIL=$(<"$HTML_DIR/section-detail-item.html")
     ITEM_TEMPLATE_PASS="${ITEM_TEMPLATE_FAIL/status-fail/status-pass}"
+    ITEM_TEMPLATE_UPDATED="${ITEM_TEMPLATE_FAIL/status-fail/status-updated}"
     while IFS= read -r line; do
       if [[ "$line" == *"FAIL"* ]]; then
         # Strip ANSI/tput color codes (CSI, ESC(B from tput sgr0, and SI control char)
@@ -152,11 +159,17 @@ op_generate_html_report() {
           (( FAIL_COUNT++ ))
         fi
       elif [[ "$line" == "[DETAIL]"* ]]; then
-        line=$(printf '%s' "$line" | sed 's/^\[DETAIL\][[:space:]]*//')
+        local DETAIL_TEMPLATE="$ITEM_TEMPLATE_PASS"
+        if [[ "$line" == "[DETAIL][UPDATED]"* ]]; then
+          line=$(printf '%s' "$line" | sed 's/^\[DETAIL\]\[UPDATED\][[:space:]]*//')
+          DETAIL_TEMPLATE="$ITEM_TEMPLATE_UPDATED"
+        else
+          line=$(printf '%s' "$line" | sed 's/^\[DETAIL\][[:space:]]*//')
+        fi
         line="${line//&/&amp;}"
         line="${line//</&lt;}"
         line="${line//>/&gt;}"
-        RENDERED_LINE="${ITEM_TEMPLATE_PASS//\{\{LINE\}\}/$line}"
+        RENDERED_LINE="${DETAIL_TEMPLATE//\{\{LINE\}\}/$line}"
         ITEMS_FULL+="$RENDERED_LINE"$'\n'
       fi
     done < "$REPORT_FILE"
