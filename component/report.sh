@@ -60,7 +60,7 @@ op_report_append_repo_detail() {
     DETAIL_PREFIX="[DETAIL][UPDATED]"
   fi
 
-  local DETAIL_LINE="${DETAIL_PREFIX} Repo: ${REPO_URL}"
+  local DETAIL_LINE="${DETAIL_PREFIX} ${REPO_URL}"
   if [[ "$RELEASE_DL_COUNT" -gt 0 ]]; then
     DETAIL_LINE+=" | Release Artifacts Downloaded: ${RELEASE_DL_COUNT}"
   fi
