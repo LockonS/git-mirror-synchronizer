@@ -176,7 +176,13 @@ op_generate_html_report() {
         line="${line//</&lt;}"
         line="${line//>/&gt;}"
         RENDERED_LINE="${DETAIL_TEMPLATE//\{\{LINE\}\}/$line}"
-        RENDERED_LINE="${RENDERED_LINE//\{\{RELEASE_DL_COUNT\}\}/$DETAIL_RELEASE_DL_COUNT}"
+
+        # hide badge if download count is zero
+        local BADGE_RELEASE_DL_COUNT="$DETAIL_RELEASE_DL_COUNT"
+        if [[ "$DETAIL_RELEASE_DL_COUNT" =~ ^[0-9]+$ ]] && [[ "$DETAIL_RELEASE_DL_COUNT" -eq 0 ]]; then
+          BADGE_RELEASE_DL_COUNT=""
+        fi
+        RENDERED_LINE="${RENDERED_LINE//\{\{RELEASE_DL_COUNT\}\}/$BADGE_RELEASE_DL_COUNT}"
         ITEMS_FULL+="$RENDERED_LINE"$'\n'
       fi
     done < "$REPORT_FILE"
