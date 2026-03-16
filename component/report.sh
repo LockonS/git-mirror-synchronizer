@@ -135,15 +135,18 @@ op_generate_html_report() {
   local HTML_DIR="$SYNC_TOOL_PATH/template/html/report"
   local DETAILED_REPORT_BRIEF="" DETAILED_REPORT_FULL=""
   if [[ -f "$REPORT_FILE" && -s "$REPORT_FILE" ]]; then
-    local ITEM_TEMPLATE_FAIL ITEM_TEMPLATE_PASS ITEM_TEMPLATE_UPDATED SECTION_TEMPLATE FAIL_COUNT ITEMS_BRIEF ITEMS_FULL RENDERED_LINE
+    local ITEM_TEMPLATE_FAIL ITEM_TEMPLATE_PASS ITEM_TEMPLATE_UPDATED SECTION_TEMPLATE FAIL_COUNT ITEMS_FAIL_ALL ITEMS_FAIL_BRIEF ITEMS_UPDATED ITEMS_PASS RENDERED_LINE
     FAIL_COUNT=0
-    ITEMS_BRIEF=""
-    ITEMS_FULL=""
+    ITEMS_FAIL_ALL=""
+    ITEMS_FAIL_BRIEF=""
+    ITEMS_UPDATED=""
+    ITEMS_PASS=""
     RENDERED_LINE=""
 
     ITEM_TEMPLATE_FAIL=$(<"$HTML_DIR/section-detail-item.html")
     ITEM_TEMPLATE_PASS="${ITEM_TEMPLATE_FAIL/status-fail/status-pass}"
     ITEM_TEMPLATE_UPDATED="${ITEM_TEMPLATE_FAIL/status-fail/status-updated}"
+
     while IFS= read -r line; do
       if [[ "$line" == *"FAIL"* ]]; then
         # Strip ANSI/tput color codes (CSI, ESC(B from tput sgr0, and SI control char)
@@ -154,17 +157,19 @@ op_generate_html_report() {
         line="${line//>/&gt;}"
         RENDERED_LINE="${ITEM_TEMPLATE_FAIL//\{\{LINE\}\}/$line}"
         RENDERED_LINE="${RENDERED_LINE//\{\{RELEASE_DL_COUNT\}\}/}"
-        ITEMS_FULL+="$RENDERED_LINE"$'\n'
+        ITEMS_FAIL_ALL+="$RENDERED_LINE"$'\n'
         if [[ $FAIL_COUNT -lt 10 ]]; then
-          ITEMS_BRIEF+="$RENDERED_LINE"$'\n'
-          (( FAIL_COUNT++ ))
+          ITEMS_FAIL_BRIEF+="$RENDERED_LINE"$'\n'
         fi
+        (( FAIL_COUNT++ ))
       elif [[ "$line" == "[DETAIL]"* ]]; then
         local DETAIL_TEMPLATE="$ITEM_TEMPLATE_PASS"
         local DETAIL_RELEASE_DL_COUNT="0"
+        local IS_UPDATED=false
         if [[ "$line" == "[DETAIL][UPDATED]"* ]]; then
           line=$(printf '%s' "$line" | sed 's/^\[DETAIL\]\[UPDATED\][[:space:]]*//')
           DETAIL_TEMPLATE="$ITEM_TEMPLATE_UPDATED"
+          IS_UPDATED=true
         else
           line=$(printf '%s' "$line" | sed 's/^\[DETAIL\][[:space:]]*//')
         fi
@@ -183,15 +188,23 @@ op_generate_html_report() {
           BADGE_RELEASE_DL_COUNT=""
         fi
         RENDERED_LINE="${RENDERED_LINE//\{\{RELEASE_DL_COUNT\}\}/$BADGE_RELEASE_DL_COUNT}"
-        ITEMS_FULL+="$RENDERED_LINE"$'\n'
+        if [[ "$IS_UPDATED" == true ]]; then
+          ITEMS_UPDATED+="$RENDERED_LINE"$'\n'
+        else
+          ITEMS_PASS+="$RENDERED_LINE"$'\n'
+        fi
       fi
     done < "$REPORT_FILE"
 
     if [[ ${REPORT_FAILED} -gt 10 ]]; then
       local OVERFLOW_TEMPLATE
       OVERFLOW_TEMPLATE=$(<"$HTML_DIR/section-detail-overflow.html")
-      ITEMS_BRIEF+="${OVERFLOW_TEMPLATE//\{\{COUNT\}\}/$((REPORT_FAILED - 10))}"$'\n'
+      ITEMS_FAIL_BRIEF+="${OVERFLOW_TEMPLATE//\{\{COUNT\}\}/$((REPORT_FAILED - 10))}"$'\n'
     fi
+
+    # Order: failed → updated → success (not updated)
+    local ITEMS_FULL="${ITEMS_FAIL_ALL}${ITEMS_UPDATED}${ITEMS_PASS}"
+    local ITEMS_BRIEF="${ITEMS_FAIL_BRIEF}"
 
     SECTION_TEMPLATE=$(<"$HTML_DIR/section-detail-report.html")
     DETAILED_REPORT_BRIEF="${SECTION_TEMPLATE//\{\{ITEMS\}\}/$ITEMS_BRIEF}"
