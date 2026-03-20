@@ -44,7 +44,7 @@ Git Mirror Synchronizer is a shell-based tool that:
 ```bash
 git clone https://github.com/LockonS/git-mirror-synchronizer.git
 cd git-mirror-synchronizer
-mkdir -p data/github temp log
+mkdir -p data/github temp-files
 chmod +x sync-tool.sh
 
 # Set up default storage (optional)
@@ -153,7 +153,7 @@ An array of repository objects:
     "release": {
       "download": "true",
       "keptVersionNum": "5",
-      "excludeKeywords": "windows,arm64"
+      "excludeKeywords": ["windows", "arm64"]
     },
     "tag": {
       "download": "true",
@@ -178,7 +178,7 @@ An array of repository objects:
 | `identifier`              | —        | Custom `owner/name` label (auto-extracted if omitted)       |
 | `catalog`                 | —        | Subdirectory path for organizing storage (e.g. `tools/cli`) |
 | `repo`, `release`, `tag`  | —        | Per-repo overrides (inherit from global if omitted)         |
-| `release.excludeKeywords` | —        | Comma-separated keywords to skip release assets             |
+| `release.excludeKeywords` | —        | Array of keyword strings to skip release assets             |
 | `mirror[].retryForcePush`      | —        | Force-push to mirror (`"true"`/`"false"`)                   |
 
 ### Notification
@@ -349,7 +349,7 @@ Generate a token at: GitHub → Settings → Developer settings → Personal acc
     },
     "release": {
       "download": "true",
-      "excludeKeywords": "darwin,windows"
+      "excludeKeywords": ["darwin", "windows"]
     }
   }
 ]

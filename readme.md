@@ -32,7 +32,7 @@ brew install jq git curl
 #### 1. Prepare directories
 
 ```bash
-mkdir -p data/github log temp
+mkdir -p data/github temp-files
 # example directory on Linux; adjust as needed
 sudo mkdir -p /opt/git/{git-repo,git-release,git-tag}
 sudo chown -R $USER:$USER /opt/git
@@ -95,6 +95,15 @@ data/repo.json  (per-repo)
     "storagePath": "/opt/git/git-tag",
     "download": "true",
     "keptVersionNum": "5"
+  },
+  "report": {
+    "s3": {
+      "enable": "false",
+      "profile": "",
+      "bucket": "",
+      "pathPrefix": "",
+      "urlPrefix": ""
+    }
   },
   "notification": {
     "email": {
@@ -325,12 +334,13 @@ git-mirror-synchronizer/
 │   ├── config.json    # optional global overrides
 │   └── github/github-access-token
 ├── platform/          # platform modules (github, gitlab, general)
-└── template/          # example configuration
+├── template/          # example configuration
+└── temp-files/        # runtime files (logs, reports, progress) — auto-created
 
 /opt/git/              # default storage root
 ├── git-repo/{catalog}/{identifier}/   # bare clones
-├── git-release/{identifier}/{version}/
-└── git-tag/{identifier}/{tag}/
+├── git-release/{catalog}/{identifier}/{version}/
+└── git-tag/{catalog}/{identifier}/{tag}/
 ```
 
 ---
@@ -342,9 +352,10 @@ git-mirror-synchronizer/
 - ✅ GitHub release and tag downloads with keyword filtering
 - ✅ Three-tier configuration hierarchy with per-repo overrides
 - ✅ Email notifications on sync completion
+- ✅ S3 HTML report upload via rclone
 - ✅ Dry-run mode
 - ✅ Cross-platform (Linux and macOS)
-- ✅ Cron-friendly with progress resume (`--continue`)
+- ✅ Cron-friendly with progress resume (`--continue`) and failed-repo retry (`--retry`)
 
 ---
 
