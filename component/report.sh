@@ -111,11 +111,11 @@ _op_html_build_detail_sections() {
   local HTML_DIR="${1}"
   local REPORT_FILE="${2}"
   local REPORT_FAILED="${3}"
-  typeset -n _detail_brief="${4}"
-  typeset -n _detail_full="${5}"
+  local _out_brief_var="${4}"
+  local _out_full_var="${5}"
 
-  _detail_brief=""
-  _detail_full=""
+  local _detail_brief=""
+  local _detail_full=""
   [[ ! -f "$REPORT_FILE" || ! -s "$REPORT_FILE" ]] && return 0
 
   local ITEM_TEMPLATE_FAIL ITEM_TEMPLATE_PASS ITEM_TEMPLATE_UPDATED SECTION_TEMPLATE
@@ -179,6 +179,9 @@ _op_html_build_detail_sections() {
   SECTION_TEMPLATE=$(<"$HTML_DIR/section-detail-report.html")
   _detail_brief="${SECTION_TEMPLATE//\{\{ITEMS\}\}/$ITEMS_FAIL_BRIEF}"
   _detail_full="${SECTION_TEMPLATE//\{\{ITEMS\}\}/${ITEMS_FAIL_ALL}${ITEMS_UPDATED}${ITEMS_PASS}}"
+
+  eval "${_out_brief_var}=\${_detail_brief}"
+  eval "${_out_full_var}=\${_detail_full}"
 }
 
 # Fill all {{PLACEHOLDER}} variables in the base HTML template with report stats.
@@ -196,8 +199,9 @@ _op_html_populate_base_template() {
   local RELEASE_DL_COUNT="${9}"
   local SUCCESS_RATE="${10}"
   local REPORT_FAILED_CLASS="${11}"
-  typeset -n _tmpl_out="${12}"
+  local _out_tmpl_var="${12}"
 
+  local _tmpl_out
   _tmpl_out=$(<"$TEMPLATE_FILE")
   _tmpl_out="${_tmpl_out//\{\{TIMESTAMP\}\}/$TIMESTAMP}"
   _tmpl_out="${_tmpl_out//\{\{HOSTNAME\}\}/$HOSTNAME}"
@@ -209,6 +213,8 @@ _op_html_populate_base_template() {
   _tmpl_out="${_tmpl_out//\{\{REPORT_REL_DOWNLOADED\}\}/$RELEASE_DL_COUNT}"
   _tmpl_out="${_tmpl_out//\{\{REPORT_FAILED_CLASS\}\}/$REPORT_FAILED_CLASS}"
   _tmpl_out="${_tmpl_out//\{\{SUCCESS_RATE\}\}/$SUCCESS_RATE}"
+
+  eval "${_out_tmpl_var}=\${_tmpl_out}"
 }
 
 # Inject detail sections, status note, and full-report URL into brief and full HTML reports.
@@ -221,8 +227,11 @@ _op_html_assemble_reports() {
   local DETAIL_FULL="${3}"
   local REPORT_FAILED="${4}"
   local HTML_DIR="${5}"
-  typeset -n _brief_out="${6}"
-  typeset -n _full_out="${7}"
+  local _out_brief_var="${6}"
+  local _out_full_var="${7}"
+
+  local _brief_out=""
+  local _full_out=""
 
   # Inject detail sections
   _brief_out="${BASE_TEMPLATE//\{\{DETAILED_REPORT\}\}/$DETAIL_BRIEF}"
@@ -255,6 +264,9 @@ _op_html_assemble_reports() {
   fi
   _brief_out="${_brief_out//\{\{FULL_REPORT_URL_SECTION\}\}/$FULL_REPORT_URL_SECTION}"
   _full_out="${_full_out//\{\{FULL_REPORT_URL_SECTION\}\}/}"
+
+  eval "${_out_brief_var}=\${_brief_out}"
+  eval "${_out_full_var}=\${_full_out}"
 }
 
 # format and write HTML report files (brief: first 10 failures, full: all failures)
