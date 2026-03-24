@@ -125,11 +125,11 @@ op_set_remote_repo() {
 
 # push to remote repo
 op_push_remote_repo() {
-  local REPO_NAME REPO_LOCAL_PATH MIRROR_REMOTE_REPO_NAME REPO_BRANCH_NAME MIRROR_RETRY_FORCE_PUSH
-  REPO_NAME="${1}"
-  REPO_LOCAL_PATH="${2}"
-  MIRROR_REMOTE_REPO_NAME="${3}"
-  MIRROR_RETRY_FORCE_PUSH="${4}"
+  local REPO_NAME="${1}"
+  local REPO_LOCAL_PATH="${2}"
+  local MIRROR_REMOTE_REPO_NAME="${3}"
+  local MIRROR_RETRY_FORCE_PUSH="${4}"
+  local REPO_BRANCH_NAME
   REPO_BRANCH_NAME=$(git -C "$REPO_LOCAL_PATH" rev-parse --abbrev-ref HEAD)
 
   # print repo sync message
@@ -194,10 +194,9 @@ op_load_access_token() {
 #   $2 - download_release function name  (e.g. op_github_download_release)
 #   $3 - download_tag function name      (e.g. op_github_download_tag)
 op_handle_repo() {
-  local REPO_RUNTIME_CONFIG FN_DOWNLOAD_RELEASE FN_DOWNLOAD_TAG
-  REPO_RUNTIME_CONFIG="${1}"
-  FN_DOWNLOAD_RELEASE="${2}"
-  FN_DOWNLOAD_TAG="${3}"
+  local REPO_RUNTIME_CONFIG="${1}"
+  local FN_DOWNLOAD_RELEASE="${2}"
+  local FN_DOWNLOAD_TAG="${3}"
 
   local REPO_URL REPO_SYNC REPO_RELEASE_DOWNLOAD REPO_TAG_DOWNLOAD REPO_IDENTIFIER REPO_CATALOG
   REPO_URL=$(echo "$REPO_RUNTIME_CONFIG" | jq ".repoUrl" | tr -d '"')

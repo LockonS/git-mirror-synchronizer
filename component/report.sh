@@ -279,10 +279,11 @@ op_generate_html_report() {
   local UPDATED_REPOS="${6:-0}"
   local RELEASE_DL_COUNT="${7:-0}"
 
-  local TIMESTAMP HOSTNAME SUCCESS_RATE="N/A"
+  local SUCCESS_RATE="N/A"
   local REPORT_TEMPLATE_FILE="$SYNC_TOOL_PATH/template/html/report.html"
   local HTML_DIR="$SYNC_TOOL_PATH/template/html/report"
 
+  local TIMESTAMP HOSTNAME
   TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
   HOSTNAME=$(hostname)
 

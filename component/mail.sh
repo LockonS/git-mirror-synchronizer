@@ -10,13 +10,8 @@ op_send_email() {
   # Skip if email is empty or not configured
   if [[ -z "$RECIPIENT" ]]; then
     echo -e ""
-    op_prompt_warn "Email notification skipped: no recipient configured"
+    op_prompt_warn "Email notification skipped: empty recipient"
     return 0
-  fi
-
-  # Use default sender if not provided
-  if [[ -z "$SENDER" && -n "$RECIPIENT" ]]; then
-    SENDER="noreply@git-mirror-synchronizer"
   fi
 
   # Send email using sendmail command
@@ -68,6 +63,11 @@ op_process_email_notification() {
   if [[ "$NOTIFICATION_ENABLE" != "true" ]]; then
     op_prompt_checkpoint -n -c "${YELLOW}" "Email notification not enabled, skipping email sending"
     return 0
+  fi
+
+  # Use default sender if not provided
+  if [[ -z "$NOTIFICATION_SENDER" ]]; then
+    NOTIFICATION_SENDER="noreply@git-mirror-synchronizer"
   fi
   
   if [[ -n "$NOTIFICATION_RECEIVER" ]]; then
