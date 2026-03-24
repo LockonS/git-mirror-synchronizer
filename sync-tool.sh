@@ -272,7 +272,7 @@ sync_tool_entry() {
 
   # send email notification with report (skipped when filtering by specific repo URLs)
   if [[ ${#FILTER_REPO_URLS[@]} -eq 0 ]]; then
-    op_process_email_notification "$RUNTIME_CONFIG_FILE" "$REPORT_TOTAL" "$REPORT_SUCCESS" "$REPORT_FAILED" "$REPORT_FILE"
+    op_process_email_notification "$RUNTIME_CONFIG_FILE"
   fi
 }
 

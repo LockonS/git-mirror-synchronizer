@@ -45,10 +45,6 @@ op_send_email() {
 # send email notification with formatted report
 op_process_email_notification() {
   local RUNTIME_CONFIG_FILE="${1:-}"
-  local REPORT_TOTAL="${2:-0}"
-  local REPORT_SUCCESS="${3:-0}"
-  local REPORT_FAILED="${4:-0}"
-  local REPORT_FILE="${5:-}"
 
   local NOTIFICATION_SENDER=""
   local NOTIFICATION_RECEIVER=""
