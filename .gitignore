@@ -1,4 +1,10 @@
 .DS_Store
-data/
 .idea/
 .vscode
+*.log
+
+/data/
+/log/
+/temp/
+/temp-files/
+/report/

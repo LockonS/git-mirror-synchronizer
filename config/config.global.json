@@ -1,0 +1,32 @@
+{
+  "repo": {
+    "storagePath": "/opt/git/git-repo",
+    "sync": "true"
+  },
+  "release": {
+    "storagePath": "/opt/git/git-release",
+    "download": "true",
+    "keptVersionNum": "5"
+  },
+  "tag": {
+    "storagePath": "/opt/git/git-tag",
+    "download": "true",
+    "keptVersionNum": "5"
+  },
+  "report": {
+    "s3": {
+      "enable": "false",
+      "profile": "",
+      "bucket": "",
+      "pathPrefix": "",
+      "urlPrefix": ""
+    }
+  },
+  "notification": {
+    "email": {
+      "enable": "false",
+      "sender": "",
+      "receiver": ""
+    }
+  }
+}

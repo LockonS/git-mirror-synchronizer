@@ -1,0 +1,38 @@
+[
+  {
+    "repoUrl": "https://github.com/LockonS/git-mirror-synchronizer.git",
+    "identifier": "LockonS/git-mirror-synchronizer",
+    "catalog": "tool/automation",
+    "repo": {
+      "storagePath": "/opt/git/git-repo",
+      "sync": "true"
+    },
+    "release": {
+      "storagePath": "/opt/git/git-release",
+      "download": "true",
+      "keptVersionNum": "3",
+      "excludeKeywords": [
+        "windows",
+        "darwin"
+      ],
+      "keptVersionKeywords": [
+        "v1.0"
+      ]
+    },
+    "tag": {
+      "storagePath": "/opt/git/git-tag",
+      "download": "true",
+      "keptVersionNum": "3",
+      "keptVersionKeywords": [
+        "v1.0"
+      ]
+    },
+    "mirror": [
+      {
+        "name": "custom",
+        "repoUrl": "custom-git-repo-url.git",
+        "retryForcePush": "false"
+      }
+    ]
+  }
+]

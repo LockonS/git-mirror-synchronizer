@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Git Mirror Sync Report</title>
+  <style>
+    body { font-family: 'Segoe UI', '-apple-system', 'BlinkMacSystemFont', 'San Francisco', 'Helvetica Neue', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Tahoma', 'Geneva', 'Verdana', 'Arial', sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+    .header p { margin: 8px 0 0 0; font-size: 14px; opacity: 0.9; }
+    .content { padding: 30px; }
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 16px; font-weight: 600; color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 15px; }
+    .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .info-label { font-weight: 500; color: #555; }
+    .info-value { color: #333; font-family: 'Menlo', '-apple-system', 'Monaco', 'Ubuntu Mono', 'Consolas', 'Courier New', 'Courier', monospace; }
+    .stats-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    .stats-table th { background-color: #667eea; color: white; padding: 12px; text-align: left; font-weight: 600; font-size: 13px; }
+    .stats-table th:nth-child(2) { text-align: right; }
+    .stats-table td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+    .stats-table td:nth-child(2) { text-align: right; }
+    .stats-table tr:nth-child(even) { background-color: #f9f9f9; }
+    .stat-value { font-size: 16px; font-weight: 600; }
+    .stat-success { color: #28a745; }
+    .stat-failed { color: #dc3545; }
+    .stat-failed-zero { color: #555; }
+    .stat-total { color: #667eea; }
+    .stat-updated { color: #007bff; }
+    .report-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; margin: 8px 0; background-color: #f9f9f9; border-left: 4px solid #667eea; border-radius: 4px; font-family: 'Menlo', '-apple-system', 'Monaco', 'Ubuntu Mono', 'Consolas', 'Courier New', 'Courier', monospace; font-size: 12px; }
+    .repo-line { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+    .release-count-badge { width: 18px; height: 18px; min-width: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 3px; background-color: #06b6d4; color: #ffffff; font-size: 10px; font-weight: 700; box-shadow: 0 0 0 1px rgba(6, 130, 160, 0.25); }
+    .release-count-badge:empty { display: none; }
+    .status-pass { border-left-color: #28a745; }
+    .status-fail { border-left-color: #dc3545; }
+    .status-updated { border-left-color: #007bff; }
+    .notes { background-color: #e8f4f8; border-left: 4px solid #17a2b8; padding: 15px; border-radius: 4px; margin: 15px 0; }
+    .notes .icon { font-size: 20px; margin-right: 10px; }
+    .footer { background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; }
+    .info-row-last { border-bottom: none; }
+    .note-content { display: flex; align-items: center; }
+    .note-text-success { color: #28a745; font-weight: 500; }
+    .note-text-failed { color: #dc3545; font-weight: 500; }
+    .report-link { color: #667eea; font-size: 12px; font-family: 'Menlo', '-apple-system', 'Monaco', 'Ubuntu Mono', 'Consolas', 'Courier New', 'Courier', monospace; }
+    
+    /* Mobile responsive styles */
+    @media (max-width: 600px) {
+      .container { border-radius: 0; box-shadow: none; }
+      .header { padding: 20px; }
+      .header h1 { font-size: 22px; }
+      .header p { font-size: 12px; }
+      .content { padding: 15px; }
+      .section { margin-bottom: 20px; }
+      .section-title { font-size: 14px; padding-bottom: 8px; margin-bottom: 12px; }
+      .info-row { padding: 8px 0; }
+      .info-label { font-size: 13px; }
+      .info-value { font-size: 13px; }
+      .stats-table th { padding: 10px; font-size: 12px; }
+      .stats-table td { padding: 10px; font-size: 12px; }
+      .stat-value { font-size: 18px; }
+      .report-item { padding: 8px; margin: 6px 0; font-size: 11px; }
+      .notes { padding: 12px; margin: 12px 0; }
+      .notes .icon { font-size: 18px; }
+      .footer { padding: 15px; font-size: 11px; }
+      body { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Git Mirror Synchronizer</h1>
+      <p>Sync Report</p>
+    </div>
+    <div class="content">
+      <div class="section">
+        <div class="section-title">Execution Summary</div>
+        <div class="info-row">
+          <span class="info-label">Timestamp:</span>
+          <span class="info-value">{{TIMESTAMP}}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Hostname:</span>
+          <span class="info-value">{{HOSTNAME}}</span>
+        </div>
+        <div class="info-row info-row-last">
+          <span class="info-label">Mode:</span>
+          <span class="info-value">{{EXECUTION_MODE}}</span>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Statistics</div>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Total Repositories</td>
+              <td><span class="stat-value stat-total">{{REPORT_TOTAL}}</span></td>
+            </tr>
+            <tr>
+              <td>Successful Syncs</td>
+              <td><span class="stat-value stat-success">{{REPORT_SUCCESS}}</span></td>
+            </tr>
+            <tr>
+              <td>Failed Syncs</td>
+              <td><span class="stat-value {{REPORT_FAILED_CLASS}}">{{REPORT_FAILED}}</span></td>
+            </tr>
+            <tr>
+              <td>Updated Repositories</td>
+              <td><span class="stat-value stat-updated">{{REPORT_UPDATED}}</span></td>
+            </tr>
+            <tr>
+              <td>Release Downloaded</td>
+              <td><span class="stat-value stat-total">{{REPORT_REL_DOWNLOADED}}</span></td>
+            </tr>
+            <tr>
+              <td>Success Rate</td>
+              <td><span class="stat-value stat-total">{{SUCCESS_RATE}}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {{DETAILED_REPORT}}
+      {{FULL_REPORT_URL_SECTION}}
+      {{STATUS_NOTE_SECTION}}
+    </div>
+    <div class="footer">
+      <p>This is an automated message from <a href="https://github.com/LockonS/git-mirror-synchronizer" style="color: #667eea;">Git Mirror Synchronizer</a>. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>
